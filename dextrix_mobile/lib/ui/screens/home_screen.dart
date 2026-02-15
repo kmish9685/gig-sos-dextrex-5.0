@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../features/demo/demo_emergency_service.dart';
+import 'signal_monitor_screen.dart';
 import 'demo_screen.dart'; // Direct navigation
 import 'incoming_alert_screen.dart';
 import 'emergency_screen.dart';
@@ -76,14 +77,16 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dextrix 5.0'),
+        title: const Text('DEXTRIX 5.0'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings, color: Colors.white24), 
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const DemoScreen()),
-            ),
+            icon: const Icon(Icons.radar), 
+            tooltip: "Signal Matrix",
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SignalMonitorScreen()))
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings), 
+            onPressed: () => Navigator.pushNamed(context, '/settings'),
           ),
         ],
       ),
