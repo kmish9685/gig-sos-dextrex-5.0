@@ -30,7 +30,7 @@ dependencies:
   shared_preferences: ^2.2.0
 
   # Connectivity (True P2P - Google Nearby API)
-  nearby_connections: ^6.0.0
+  nearby_connections: ^4.3.0
   
 dev_dependencies:
   flutter_test:
