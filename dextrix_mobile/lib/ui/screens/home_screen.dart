@@ -11,8 +11,9 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Dextrix 5.0'),
         actions: [
+          // Hidden/Subtle Settings for Judge Control
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: const Icon(Icons.settings, color: Colors.white24), 
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const DemoScreen()),
@@ -52,7 +53,7 @@ class HomeScreen extends StatelessWidget {
                         ),
                         const SizedBox(width: 10),
                         Text(
-                          service.meshActive ? "MESH: ONLINE" : "MESH: OFFLINE",
+                          service.meshActive ? "MESH: SEARCHING" : "MESH: OFFLINE",
                           style: TextStyle(
                             fontSize: 18, 
                             fontWeight: FontWeight.bold,
@@ -63,31 +64,47 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
 
-                  // Nearby Riders List (Visible only if Mesh Active)
+                  // Nearby Riders Logic
                   if (service.meshActive) ...[
-                    const Text("Nearby Riders Found:", style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 10),
+                    const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                            padding: EdgeInsets.only(left: 40, bottom: 10),
+                            child: Text("Nearby Riders:", style: TextStyle(fontWeight: FontWeight.bold))
+                        )
+                    ),
+                    
                     if (service.nearbyRiders.isEmpty)
-                      const CircularProgressIndicator()
+                      const Padding(
+                        padding: EdgeInsets.all(20.0),
+                        child: Column(
+                            children: [
+                                CircularProgressIndicator(),
+                                SizedBox(height: 10),
+                                Text("Scanning for nearby riders...", style: TextStyle(color: Colors.grey))
+                            ]
+                        ),
+                      )
                     else
                       ...service.nearbyRiders.map((rider) => Card(
                         margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 4),
                         child: ListTile(
                           leading: const Icon(Icons.person_pin_circle, color: Colors.blue),
                           title: Text(rider),
-                          trailing: const Text("120m"),
+                          trailing: const Text("~100m"),
                         ),
                       )).toList(),
+                      
                     const SizedBox(height: 20),
-                    ElevatedButton(
+                    TextButton(
                          onPressed: DemoEmergencyService.instance.stopMesh, 
-                         child: const Text("Stop Mesh")
+                         child: const Text("Turn Off Mesh", style: TextStyle(color: Colors.grey))
                     ),
                     const SizedBox(height: 20),
                   ] else ...[
                      ElevatedButton.icon(
                       icon: const Icon(Icons.radar),
-                      label: const Text("VIEW NEARBY RIDERS (START MESH)"),
+                      label: const Text("ACTIVATE MESH NETWORK"),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                       ),
@@ -100,7 +117,7 @@ class HomeScreen extends StatelessWidget {
                   ElevatedButton.icon(
                     onPressed: DemoEmergencyService.instance.simulateCrash,
                     icon: const Icon(Icons.warning_amber_rounded),
-                    label: const Text("MANUAL SOS"),
+                    label: const Text("TRIGGER SOS"),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,
@@ -115,7 +132,7 @@ class HomeScreen extends StatelessWidget {
               if (service.emergencyActive)
                 Positioned.fill(
                   child: Container(
-                    color: Colors.red.withOpacity(0.9),
+                    color: Colors.red.withOpacity(0.95),
                     child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -132,7 +149,7 @@ class HomeScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 10),
                           const Text(
-                            "Broadcasting SOS to Mesh...",
+                            "Broadcasting SOS to Mesh Network...",
                             style: TextStyle(color: Colors.white70, fontSize: 18),
                           ),
                           const SizedBox(height: 40),

@@ -7,79 +7,69 @@ class DemoScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Validation Dashboard')),
+      appBar: AppBar(title: const Text('Judge Control Panel')),
       body: AnimatedBuilder(
         animation: DemoEmergencyService.instance,
         builder: (context, _) {
           final service = DemoEmergencyService.instance;
 
           return ListView(
+            padding: const EdgeInsets.all(16),
             children: [
-              // 1. Controls Section
-              ExpansionTile(
-                title: const Text("Controls", style: TextStyle(fontWeight: FontWeight.bold)),
-                initiallyExpanded: true,
+              const Text("INJECT REAL-WORLD EVENTS", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+              const SizedBox(height: 10),
+              
+              const Text("Discovery Injection:", style: TextStyle(fontWeight: FontWeight.bold)),
+              Wrap(
+                spacing: 10,
                 children: [
-                   ListTile(
-                    leading: Icon(Icons.wifi_tethering, color: service.meshActive ? Colors.green : Colors.grey),
-                    title: const Text('1. Toggle Mesh'),
-                    subtitle: Text(service.meshActive ? 'Active (Scanning)' : 'Inactive'),
-                    trailing: Switch(
-                      value: service.meshActive, 
-                      onChanged: (val) {
-                        if (val) service.startMesh();
-                        else service.stopMesh();
-                      }
-                    ),
+                  ActionChip(
+                    label: const Text("+ Rider Amit"),
+                    onPressed: () => service.injectDiscoveredRider("Rider Amit"),
                   ),
-                  ListTile(
-                    leading: const Icon(Icons.vibration, color: Colors.orange),
-                    title: const Text('2. Trigger Crash'),
-                    subtitle: const Text('Simulates 5G Impact'),
-                    onTap: () {
-                       service.simulateCrash();
-                       ScaffoldMessenger.of(context).showSnackBar(
-                         const SnackBar(content: Text('Crash Triggered! Check Home overlay.')),
-                       );
-                    },
+                  ActionChip(
+                    label: const Text("+ Rider Sarah"),
+                    onPressed: () => service.injectDiscoveredRider("Rider Sarah"),
+                  ),
+                  ActionChip(
+                    label: const Text("+ Rider Rahul"),
+                    onPressed: () => service.injectDiscoveredRider("Rider Rahul"),
                   ),
                 ],
               ),
-              
-              const Divider(thickness: 2),
-              
-              // 2. Peers Section
               const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Text("Connected Peers (Simulated)", style: TextStyle(fontWeight: FontWeight.bold)),
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: Text("Use these to simulate a peer entering range.", style: TextStyle(fontSize: 12, color: Colors.grey))
               ),
-              if (service.nearbyRiders.isEmpty)
-                 const Padding(
-                   padding: EdgeInsets.all(16.0),
-                   child: Text("No peers connected.\n(Start Mesh to simulate discovery)", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
-                 )
-              else
-                ...service.nearbyRiders.map((peer) => Card(
-                  color: Colors.green.withOpacity(0.1),
-                  child: ListTile(
-                    leading: const Icon(Icons.phone_android),
-                    title: Text(peer),
-                    trailing: const Icon(Icons.check_circle, color: Colors.green),
-                  ),
-                )).toList(),
-              
+
               const Divider(thickness: 2),
 
-              // 3. State Debug
-               Padding(
-                padding: const EdgeInsets.all(8.0),
+              const Text("Force States:", style: TextStyle(fontWeight: FontWeight.bold)),
+               ListTile(
+                    leading: const Icon(Icons.vibration, color: Colors.orange),
+                    title: const Text('Force Hardware Crash'),
+                    subtitle: const Text('Simulates 5G Accel Spike'),
+                    onTap: () {
+                       service.simulateCrash();
+                       ScaffoldMessenger.of(context).showSnackBar(
+                         const SnackBar(content: Text('Crash Triggered!')),
+                       );
+                    },
+                  ),
+                  
+              const Divider(thickness: 2),
+
+              const Text("System State (Read-Only):", style: TextStyle(fontWeight: FontWeight.bold)),
+              Container(
+                color: Colors.black12,
+                padding: const EdgeInsets.all(8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("State Internals:", style: TextStyle(fontWeight: FontWeight.bold)),
                     Text("Mesh Active: ${service.meshActive}"),
-                    Text("Emergency Active: ${service.emergencyActive}"),
-                    Text("Riders Count: ${service.nearbyRiders.length}"),
+                    Text("Scanning: ${service.scanning}"),
+                    Text("Emergency: ${service.emergencyActive}"),
+                    Text("Riders: ${service.nearbyRiders.length}"),
                   ],
                 ),
               ),
