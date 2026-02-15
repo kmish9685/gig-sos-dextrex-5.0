@@ -159,21 +159,28 @@ class DemoEmergencyService extends ChangeNotifier {
   void _initConnectivity() {
     print("DemoEmergencyService: Listening for Network Changes...");
     Connectivity().onConnectivityChanged.listen((result) {
+      print("Connectivity Changed: $result");
+
+      // SCENARIO E: Relay Upload (If Internet Returns)
       if (result != ConnectivityResult.none) {
-         // SCENARIO E: Relay Upload (Auto-Upload when Internet returns)
          simulateNetworkRestoration();
+      }
+      
+      // AUTO-RESTART MESH (Fix for "Toggle Required")
+      // Whether Wi-Fi turns ON or OFF, the Radio state changes.
+      // We must restart the Mesh to re-acquire the radio cleanly.
+      if (meshActive) {
+         print("🔄 Network Changed. Restarting Mesh in 2s...");
+         onDebugMessage?.call("🌐 Network Change. Rebinding Mesh...");
          
-         // Network is back (WiFi or Hotspot)
-         print("DemoEmergencyService: Network Restored. Restarting Mesh...");
-         onDebugMessage?.call("🌐 Network Change Detected. Rebinding Mesh...");
-         
-         // Give Android 2-3 seconds to assign IP address before binding
-         Future.delayed(const Duration(seconds: 3), () {
-           if (meshActive) {
-             print("Restarting Mesh Service...");
-             stopMesh();
-             Future.delayed(const Duration(milliseconds: 500), () => startMesh());
-           }
+         // Delay to let OS settle radio
+         Future.delayed(const Duration(seconds: 2), () {
+            stopMesh();
+            Future.delayed(const Duration(milliseconds: 1000), () {
+               // Only restart if we were supposed to be active
+               // (Check a flag 'shouldBeActive' or just restart)
+               startMesh(); 
+            });
          });
       }
     }); 
