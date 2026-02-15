@@ -18,11 +18,25 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     DemoEmergencyService.instance.addListener(_onServiceUpdate);
+    
+    // Visual Debugging Hook
+    DemoEmergencyService.instance.onDebugMessage = (msg) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(msg), 
+            duration: const Duration(milliseconds: 1500),
+            backgroundColor: msg.startsWith("⚠️") ? Colors.red : Colors.green,
+          )
+        );
+      }
+    };
   }
 
   @override
   void dispose() {
     DemoEmergencyService.instance.removeListener(_onServiceUpdate);
+    DemoEmergencyService.instance.onDebugMessage = null;
     super.dispose();
   }
 

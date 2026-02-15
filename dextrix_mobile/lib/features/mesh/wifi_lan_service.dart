@@ -67,13 +67,36 @@ class WifiLanService {
     _send(data);
   }
 
-  void _send(Map<String, dynamic> data) {
+  Future<String> _getBroadcastAddress() async {
+    try {
+      final interfaces = await NetworkInterface.list(type: InternetAddressType.IPv4);
+      for (final interface in interfaces) {
+        // Look for typical LAN/Hotspot interfaces (wlan0, ap0, etc.)
+        // or just take the first non-loopback
+        for (final addr in interface.addresses) {
+          if (!addr.isLoopback) {
+             final ip = addr.address; // e.g., 192.168.43.10
+             final subnet = ip.substring(0, ip.lastIndexOf('.'));
+             return '$subnet.255'; // Return 192.168.43.255
+          }
+        }
+      }
+    } catch (e) {
+      print("[WifiLanService] IP Search Error: $e");
+    }
+    return '255.255.255.255'; // Fallback
+  }
+
+  void _send(Map<String, dynamic> data) async {
     try {
       final jsonStr = jsonEncode(data);
       final bytes = utf8.encode(jsonStr);
-      // Send to Global Broadcast Address
-      int sent = _socket?.send(bytes, InternetAddress('255.255.255.255'), PORT) ?? 0;
-      print("[WifiLanService] Bytes sent: $sent | Payload: $jsonStr");
+      
+      final broadcastIP = await _getBroadcastAddress();
+      print("[WifiLanService] Sending to $broadcastIP");
+
+      _socket?.send(bytes, InternetAddress(broadcastIP), PORT);
+      print("[WifiLanService] Bytes sent: $jsonStr");
     } catch (e) {
       print("[WifiLanService] Send error: $e");
     }

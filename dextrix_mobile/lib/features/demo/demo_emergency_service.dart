@@ -18,6 +18,9 @@ class DemoEmergencyService extends ChangeNotifier {
   final WifiLanService _lanService = WifiLanService.instance;
   final String _myDeviceId = "DEV-${DateTime.now().millisecondsSinceEpoch}";
   
+  // Debug Callback for UI Toasts
+  void Function(String msg)? onDebugMessage;
+
   DemoEmergencyService._() {
     _initSensor();
     // Listen for UDP packets
@@ -28,12 +31,16 @@ class DemoEmergencyService extends ChangeNotifier {
       if (sender == _myDeviceId) return; // Ignore own echoes
 
       if (type == 'SOS') {
-        print("DemoEmergencyService: REAL UDP SOS RECEIVED!");
+        final msg = "⚠️ UDP SOS from ${data['victim_name']}";
+        print(msg);
+        onDebugMessage?.call(msg);
         triggerIncomingAlert(data['victim_name'] ?? 'Unknown', 'Nearby (WiFi)');
       } else if (type == 'HELLO') {
         final String name = data['sender_name'] ?? 'Unknown Rider';
         if (!nearbyRiders.contains(name)) {
-          print("DemoEmergencyService: Discovered Peer via UDP - $name");
+          final msg = "👋 Discovered: $name";
+          print(msg); 
+          onDebugMessage?.call(msg);
           nearbyRiders.add(name);
           scanning = false; // Found someone
           notifyListeners();
