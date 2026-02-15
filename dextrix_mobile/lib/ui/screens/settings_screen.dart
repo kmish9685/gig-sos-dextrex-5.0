@@ -17,6 +17,31 @@ class SettingsScreen extends StatelessWidget {
             leading: const Icon(Icons.person),
             title: const Text("User Identity"),
             subtitle: Text(service.userName),
+            trailing: const Icon(Icons.edit, color: Colors.blue),
+            onTap: () {
+              showDialog(
+                context: context, 
+                builder: (context) {
+                  final controller = TextEditingController(text: service.userName);
+                  return AlertDialog(
+                    title: const Text("Edit Name"),
+                    content: TextField(controller: controller),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+                      ElevatedButton(
+                        onPressed: () {
+                          service.userName = controller.text;
+                          // Force UI update (hacky but works for demo)
+                          service.notifyListeners(); 
+                          Navigator.pop(context);
+                        }, 
+                        child: const Text("Save")
+                      )
+                    ]
+                  );
+                }
+              );
+            },
           ),
           const Divider(),
           ListTile(

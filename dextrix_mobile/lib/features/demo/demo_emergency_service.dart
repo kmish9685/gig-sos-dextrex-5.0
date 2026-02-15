@@ -59,7 +59,20 @@ class DemoEmergencyService extends ChangeNotifier {
         final msg = "⚠️ UDP SOS from ${data['victim_name']}";
         print(msg);
         onDebugMessage?.call(msg);
-        triggerIncomingAlert(data['victim_name'] ?? 'Unknown', 'Nearby (WiFi)');
+        
+        // Calculate Distance
+        double myLat = lastKnownLocation?['lat'] ?? 0.0;
+        double myLng = lastKnownLocation?['lng'] ?? 0.0;
+        double vicLat = (data['lat'] as num?)?.toDouble() ?? 0.0;
+        double vicLng = (data['lng'] as num?)?.toDouble() ?? 0.0;
+        
+        String distStr = "Unknown Distance";
+        if (myLat != 0.0 && vicLat != 0.0) {
+            double distMeters = Geolocator.distanceBetween(myLat, myLng, vicLat, vicLng);
+            distStr = "${distMeters.toStringAsFixed(0)}m away";
+        }
+        
+        triggerIncomingAlert(data['victim_name'] ?? 'Unknown', distStr, lat: vicLat, lng: vicLng);
       } else if (type == 'HELLO') {
         final String name = data['sender_name'] ?? 'Unknown Rider';
         if (!nearbyRiders.contains(name)) {
@@ -164,14 +177,26 @@ class DemoEmergencyService extends ChangeNotifier {
     print("DemoEmergencyService: Broadcasting SOS Packet to P2P Mesh...");
     isBroadcasting = true;
     
+    // Ensure we have a location (even if approximate)
+    double lat = lastKnownLocation?['lat'] ?? 0.0;
+    double lng = lastKnownLocation?['lng'] ?? 0.0;
+
+    // DEMO SAFEGUARD: If indoors (0,0), use a fixed "Nearby" location
+    // so the other phone can calculate a distance (~150m)
+    if (lat == 0.0 && lng == 0.0) {
+       print("⚠️ GPS is 0.0 (Indoors). Using SIMULATED Location for Demo.");
+       lat = 28.4595; // Demo point matching Trigger Incoming Alert
+       lng = 77.0266;
+    }
+
     // Send Real P2P Packet
     final packet = {
       'type': 'SOS',
       'sender_id': _myDeviceId,
       'victim_name': userName,
       'timestamp': DateTime.now().toIso8601String(),
-      'lat': lastKnownLocation?['lat'] ?? 0.0,
-      'lng': lastKnownLocation?['lng'] ?? 0.0
+      'lat': lat,
+      'lng': lng
     };
     
     _p2pService.broadcastMessage(packet);
@@ -191,14 +216,14 @@ class DemoEmergencyService extends ChangeNotifier {
 
   // --- INCOMING ALERT FLOW (RESPONDER) ---
 
-  void triggerIncomingAlert(String victimName, String distance) {
+  void triggerIncomingAlert(String victimName, String distance, {double? lat, double? lng}) {
     print("DemoEmergencyService: RECEIVED SOS from $victimName!");
     currentIncomingAlert = {
       'victim': victimName,
       'distance': distance,
       'timestamp': DateTime.now().toIso8601String(),
-      'lat': 28.4595,
-      'lng': 77.0266
+      'lat': lat ?? 28.4595,
+      'lng': lng ?? 77.0266
     };
     notifyListeners();
   }

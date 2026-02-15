@@ -98,6 +98,10 @@ class P2pMeshService {
         userName,
         Strategy.P2P_CLUSTER,
         onEndpointFound: (id, name, serviceId) {
+          if (connectedEndpoints.contains(id)) {
+             onDebugLog?.call("👋 Already connected to $name ($id). Skipping.");
+             return;
+          }
           onDebugLog?.call("👀 Found Peer: $name ($id). Requesting Connection...");
           _requestConnection(id, name);
         },

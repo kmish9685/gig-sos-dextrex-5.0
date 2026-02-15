@@ -18,6 +18,12 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    
+    // AUTO-START MESH (Safety First)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      DemoEmergencyService.instance.startMesh();
+    });
+
     DemoEmergencyService.instance.addListener(_onServiceUpdate);
     
     // Visual Debugging Hook
