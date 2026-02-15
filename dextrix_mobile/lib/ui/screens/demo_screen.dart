@@ -16,39 +16,63 @@ class DemoScreen extends StatelessWidget {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              const Text("INJECT REAL-WORLD EVENTS", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+              // 1. Identity Config
+              const Text("MY IDENTITY", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.person),
+                  title: Text(service.userName),
+                  subtitle: const Text("Tap to edit name"),
+                  trailing: const Icon(Icons.edit),
+                  onTap: () {
+                    _showNameEditDialog(context, service);
+                  },
+                ),
+              ),
+              const Divider(thickness: 2),
+
+              // 2. Network Events
+              const Text("INJECT NETWORK EVENTS", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
               const SizedBox(height: 10),
               
               const Text("Discovery Injection:", style: TextStyle(fontWeight: FontWeight.bold)),
               Wrap(
                 spacing: 10,
                 children: [
-                  ActionChip(
-                    label: const Text("+ Rider Amit"),
+                   ActionChip(
+                    avatar: const Icon(Icons.wifi_tethering),
+                    label: const Text("+ Amit"),
                     onPressed: () => service.injectDiscoveredRider("Rider Amit"),
                   ),
                   ActionChip(
-                    label: const Text("+ Rider Sarah"),
-                    onPressed: () => service.injectDiscoveredRider("Rider Sarah"),
-                  ),
-                  ActionChip(
-                    label: const Text("+ Rider Rahul"),
+                    avatar: const Icon(Icons.wifi_tethering),
+                    label: const Text("+ Rahul"),
                     onPressed: () => service.injectDiscoveredRider("Rider Rahul"),
                   ),
                 ],
               ),
-              const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0),
-                  child: Text("Use these to simulate a peer entering range.", style: TextStyle(fontSize: 12, color: Colors.grey))
+              
+              const SizedBox(height: 20),
+              const Text("Emergency Injection (Incoming):", style: TextStyle(fontWeight: FontWeight.bold)),
+              ListTile(
+                    tileColor: Colors.red.withOpacity(0.1),
+                    leading: const Icon(Icons.warning, color: Colors.red),
+                    title: const Text('Simulate SOS from "Rider Amit"'),
+                    subtitle: const Text('Triggers Incoming Alert Screen'),
+                    onTap: () {
+                       service.triggerIncomingAlert("Rider Amit", "150m");
+                       Navigator.pop(context); // Close panel to see alert
+                    },
               ),
 
               const Divider(thickness: 2),
 
-              const Text("Force States:", style: TextStyle(fontWeight: FontWeight.bold)),
+              // 3. Force Local State
+              const Text("FORCE LOCAL HARDWARE:", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
                ListTile(
                     leading: const Icon(Icons.vibration, color: Colors.orange),
                     title: const Text('Force Hardware Crash'),
-                    subtitle: const Text('Simulates 5G Accel Spike'),
+                    subtitle: const Text('Simulates 5G Accel Spike (My Crash)'),
                     onTap: () {
                        service.simulateCrash();
                        ScaffoldMessenger.of(context).showSnackBar(
@@ -67,9 +91,8 @@ class DemoScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text("Mesh Active: ${service.meshActive}"),
-                    Text("Scanning: ${service.scanning}"),
-                    Text("Emergency: ${service.emergencyActive}"),
-                    Text("Riders: ${service.nearbyRiders.length}"),
+                    Text("My Status: ${service.emergencyActive ? 'CRASHED' : 'SAFE'}"),
+                    Text("Broadcasting: ${service.isBroadcasting}"),
                   ],
                 ),
               ),
@@ -79,4 +102,27 @@ class DemoScreen extends StatelessWidget {
       ),
     );
   }
+
+  void _showNameEditDialog(BuildContext context, DemoEmergencyService service) {
+    final controller = TextEditingController(text: service.userName);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Edit My Name"),
+        content: TextField(controller: controller),
+        actions: [
+          TextButton(
+            onPressed: () {
+              service.userName = controller.text;
+              // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
+              service.notifyListeners(); 
+              Navigator.pop(ctx);
+            }, 
+            child: const Text("SAVE")
+          )
+        ],
+      )
+    );
+  }
 }
+

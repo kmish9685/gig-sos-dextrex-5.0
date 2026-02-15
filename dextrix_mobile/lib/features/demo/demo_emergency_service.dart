@@ -1,10 +1,17 @@
 import 'package:flutter/foundation.dart';
 import '../../features/sensor/sensor_service.dart';
+import 'dart:async';
 
 class DemoEmergencyService extends ChangeNotifier {
   static final DemoEmergencyService instance = DemoEmergencyService._();
   
   final SensorService _sensorService = SensorService();
+  
+  // PRD: User Identity
+  String userName = "Rider Kuldeep"; 
+
+  // PRD: Incoming Alert Handling
+  Map<String, dynamic>? currentIncomingAlert;
   
   DemoEmergencyService._() {
     _initSensor();
@@ -15,12 +22,13 @@ class DemoEmergencyService extends ChangeNotifier {
     _sensorService.startMonitoring();
     _sensorService.crashDetectionStream.listen((force) {
       print("DemoEmergencyService: REAL SENSOR CRASH DETECTED ($force G)");
-      simulateCrash();
+      simulateCrash(); // Trigger Pre-Alert (Countdown)
     });
   }
 
   bool meshActive = false;
-  bool emergencyActive = false;
+  bool emergencyActive = false; // True = WE are crashing
+  bool isBroadcasting = false; // True = Countdown finished, sending SOS
   bool scanning = false;
   List<String> nearbyRiders = [];
 
@@ -28,10 +36,8 @@ class DemoEmergencyService extends ChangeNotifier {
     print("DemoEmergencyService: Mesh Started. Scanning...");
     meshActive = true;
     scanning = true;
-    nearbyRiders.clear(); // Reset on new scan
+    nearbyRiders.clear(); 
     notifyListeners();
-    
-    // In Real Mode: We wait for actual discovery or manual injection
   }
 
   void stopMesh() {
@@ -41,31 +47,58 @@ class DemoEmergencyService extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Judge Control: Manually inject a rider to simulate real network discovery
   void injectDiscoveredRider(String name) {
     if (!meshActive) return;
-    
-    print("DemoEmergencyService: Discovered Peer - $name");
     if (!nearbyRiders.contains(name)) {
       nearbyRiders.add(name);
-      scanning = false; // Found someone, so we can show list (or keep scanning true if we want continuous)
-      // Let's keep scanning true if we want "Scanning..." to act as a status, 
-      // but usually if we have a list, we show the list. 
-      // User asked: "UI shows: Scanning... If riders exist -> show list". 
-      // So we can deduce: if list not empty, show list. 
+      scanning = false; 
       notifyListeners();
     }
   }
 
+  // --- MY EMERGENCY FLOW ---
+
+  // 1. Crash Detected -> Start Countdown
   void simulateCrash() {
-    print("DemoEmergencyService: Crash Logic Triggered!");
+    print("DemoEmergencyService: Crash Logic Triggered! Starting Countdown.");
     emergencyActive = true;
+    isBroadcasting = false;
     notifyListeners();
   }
 
+  // 2. Countdown Finished -> Broadcast SOS
+  void broadcastSOS() {
+    print("DemoEmergencyService: Broadcasting SOS Packet to Mesh...");
+    isBroadcasting = true;
+    // In real app, we would send data via MeshModule here
+    notifyListeners();
+  }
+
+  // 3. Cancel/Resolve
   void cancelEmergency() {
     print("DemoEmergencyService: Emergency Cancelled/Resolved.");
     emergencyActive = false;
+    isBroadcasting = false;
+    notifyListeners();
+  }
+
+  // --- INCOMING ALERT FLOW (RESPONDER) ---
+
+  void triggerIncomingAlert(String victimName, String distance) {
+    print("DemoEmergencyService: RECEIVED SOS from $victimName!");
+    currentIncomingAlert = {
+      'victim': victimName,
+      'distance': distance,
+      'timestamp': DateTime.now().toIso8601String(),
+      'lat': 28.4595,
+      'lng': 77.0266
+    };
+    notifyListeners();
+  }
+
+  void clearIncomingAlert() {
+    currentIncomingAlert = null;
     notifyListeners();
   }
 }
+
