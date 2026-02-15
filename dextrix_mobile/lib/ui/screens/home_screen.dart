@@ -33,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _isEmergencyShown = true;
       Navigator.push(
         context, 
-        MaterialPageRoute(builder: (_) => const EmergencyScreen())
+        MaterialPageRoute(builder: (_) => EmergencyScreen())
       ).then((_) {
         // When we come back, reset logic
         _isEmergencyShown = false;
