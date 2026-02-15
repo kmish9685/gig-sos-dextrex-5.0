@@ -1,0 +1,51 @@
+/// Core Mesh Communication Module Interface
+/// Responsible for device discovery and offline data transmission.
+abstract class MeshModule {
+  /// Stream of discovered peers nearby.
+  Stream<List<String>> get peersStream;
+
+  /// Stream of incoming messages (SOS alerts).
+  Stream<Map<String, dynamic>> get messageStream;
+
+  /// Starts advertising valid presence and scanning for others.
+  Future<void> startDiscovery();
+
+  /// Stops all mesh activity.
+  Future<void> stopDiscovery();
+
+  /// Broadcasts an SOS alert to all connected/reachable peers.
+  /// [payload] is the JSON data of the alert.
+  Future<void> broadcastMessage(Map<String, dynamic> payload);
+
+  /// Connects to a specific peer (if needed for direct transfer).
+  Future<void> connectToPeer(String peerId);
+}
+
+/// Implementation stub for MeshModule
+class MeshService implements MeshModule {
+  @override
+  Stream<List<String>> get peersStream => Stream.empty(); // TODO: Implement
+
+  @override
+  Stream<Map<String, dynamic>> get messageStream => Stream.empty(); // TODO: Implement
+
+  @override
+  Future<void> startDiscovery() async {
+    // TODO: Init BLE/WiFi Direct
+  }
+
+  @override
+  Future<void> stopDiscovery() async {
+    // TODO: Dispose resources
+  }
+
+  @override
+  Future<void> broadcastMessage(Map<String, dynamic> payload) async {
+    // TODO: Send data to mesh
+  }
+
+  @override
+  Future<void> connectToPeer(String peerId) async {
+    // TODO: Establish connection
+  }
+}
