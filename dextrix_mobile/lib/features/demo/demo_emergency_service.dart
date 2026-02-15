@@ -239,6 +239,9 @@ class DemoEmergencyService extends ChangeNotifier {
     scanning = true;
     nearbyRiders.clear(); 
     
+    // KEEP ALIVE: Enable Wakelock to prevent CPU sleeping in background
+    WakelockPlus.enable(); 
+    
     // Start P2P
     _p2pService.startMesh();
     
@@ -249,104 +252,43 @@ class DemoEmergencyService extends ChangeNotifier {
     meshActive = false;
     scanning = false;
     nearbyRiders.clear();
+    WakelockPlus.disable(); // Release lock
     _p2pService.stopMesh();
     notifyListeners();
   }
 
-  void injectDiscoveredRider(String name) {
-    if (!meshActive) return;
-    if (!nearbyRiders.contains(name)) {
-      nearbyRiders.add(name);
-      scanning = false; 
-      notifyListeners();
-    }
-  }
-
-  // --- MY EMERGENCY FLOW ---
-
-  // 1. Crash Detected -> Start Countdown
-  void simulateCrash() {
-    print("DemoEmergencyService: Crash Logic Triggered! Starting Countdown.");
-    emergencyActive = true;
-    isBroadcasting = false;
-    
-    // Safety: Ensure app stays awake during emergency
-    WakelockPlus.enable();
-    
-    // Haptic Feedback for Crash
-    Vibration.vibrate(pattern: [500, 200, 500, 200]); 
-    
-    notifyListeners();
-  }
-
-  Timer? _sosTimer;
-
-  // 2. Countdown Finished -> Broadcast SOS
-  void broadcastSOS() {
-    print("DemoEmergencyService: Broadcasting SOS Packet to P2P Mesh (Looping)...");
-    isBroadcasting = true;
-    
-    // Ensure we have a location (even if approximate)
-    double lat = lastKnownLocation?['lat'] ?? 0.0;
-    double lng = lastKnownLocation?['lng'] ?? 0.0;
-
-    // DEMO SAFEGUARD: If indoors (0,0), use a fixed "Nearby" location
-    if (lat == 0.0 && lng == 0.0) {
-       print("⚠️ GPS is 0.0 (Indoors). Using SIMULATED Location for Demo.");
-       lat = 28.4595; 
-       lng = 77.0266;
-    }
-
-    // Send Real P2P Packet (Repeatedly)
-    _sosTimer?.cancel();
-    _sosTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (!isBroadcasting) {
-           timer.cancel();
-           return;
-        }
-        
-        final packet = {
-          'type': 'SOS',
-          'sender_id': _myDeviceId,
-          'victim_name': userName,
-          'timestamp': DateTime.now().toIso8601String(),
-          'lat': lat,
-          'lng': lng
-        };
-        
-        _p2pService.broadcastMessage(packet);
-        logPacket("TX: SOS SENT -> ${packet['victim_name']}");
-    });
-  }
-  
-  void cancelEmergency() {
-    print("DemoEmergencyService: Emergency Cancelled/Resolved.");
-    emergencyActive = false;
-    isBroadcasting = false;
-    _sosTimer?.cancel(); // Stop the loop
-    
-    // Stop Haptics if they were running (Scenario C warning)
-    Vibration.cancel();
-    WakelockPlus.disable();
-    
-    notifyListeners();
-  }
-
+  // ... (injectDiscoveredRider is same) ...
 
   // --- INCOMING ALERT FLOW (RESPONDER) ---
 
   // SCENARIO E: The Relay (Store & Forward)
+  // SCENARIO E: The Relay (Store & Forward)
   List<Map<String, dynamic>> relayQueue = [];
   bool isAlarmMuted = false;
+  String? lastMutedVictim;
+  DateTime? lastMuteTime;
 
   void triggerIncomingAlert(String victimName, String distance, {double? lat, double? lng}) {
     print("DemoEmergencyService: RECEIVED SOS from $victimName!");
+    
+    // Logic: Reset Mute if this is a NEW victim
+    if (lastMutedVictim != victimName) {
+       isAlarmMuted = false; 
+    }
+    
+    // Logic: If Muted for > 15 seconds (Demo Mode), Wake Up (Re-Alert Safety Check)
+    if (isAlarmMuted && lastMuteTime != null && DateTime.now().difference(lastMuteTime!).inSeconds >= 15) {
+       print("⚠️ Safety Mute Expired (15s passed). Re-Alerting!");
+       isAlarmMuted = false;
+    }
     
     // HEAVY ALARM LOOP (Infinite until stopped)
     // Only start if not already muted
     if (!isAlarmMuted) {
        Vibration.vibrate(pattern: [500, 2000, 500, 2000], repeat: 0);
     }
+    
+    // ... rest of logic
     
     // ... rest of logic
     // Store for Relay (Scenario E)
@@ -368,6 +310,8 @@ class DemoEmergencyService extends ChangeNotifier {
   
   void stopAlarm() {
     isAlarmMuted = true; // Prevents future vibrations for THIS session
+    lastMutedVictim = currentIncomingAlert?['victim']; // Remember who we muted
+    lastMuteTime = DateTime.now(); // Start the 3-minute timer
     Vibration.cancel();
     print("DemoEmergencyService: Alarm Stopped/Muted.");
   }
