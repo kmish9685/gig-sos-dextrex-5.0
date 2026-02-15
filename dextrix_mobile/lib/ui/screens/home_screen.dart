@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../features/demo/demo_emergency_service.dart';
 import 'demo_screen.dart'; // Direct navigation
 import 'incoming_alert_screen.dart';
+import 'emergency_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
