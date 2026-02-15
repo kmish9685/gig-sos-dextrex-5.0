@@ -13,9 +13,25 @@ class DemoEmergencyService extends ChangeNotifier {
 
   // PRD: Incoming Alert Handling
   Map<String, dynamic>? currentIncomingAlert;
+
+  // UDP Service
+  final WifiLanService _lanService = WifiLanService.instance;
+  final String _myDeviceId = "DEV-${DateTime.now().millisecondsSinceEpoch}";
   
   DemoEmergencyService._() {
     _initSensor();
+    // Listen for UDP packets
+    _lanService.onDataReceived = (data) {
+      final String? type = data['type'];
+      final String? sender = data['sender_id'];
+      
+      if (sender == _myDeviceId) return; // Ignore own echoes
+
+      if (type == 'SOS') {
+        print("DemoEmergencyService: REAL UDP SOS RECEIVED!");
+        triggerIncomingAlert(data['victim_name'] ?? 'Unknown', 'Nearby (WiFi)');
+      }
+    };
   }
 
   void _initSensor() {
@@ -34,10 +50,14 @@ class DemoEmergencyService extends ChangeNotifier {
   List<String> nearbyRiders = [];
 
   void startMesh() {
-    print("DemoEmergencyService: Mesh Started. Scanning...");
+    print("DemoEmergencyService: Mesh Started. Scanning via UDP...");
     meshActive = true;
     scanning = true;
     nearbyRiders.clear(); 
+    
+    // Start UDP Listener
+    _lanService.startListening();
+    
     notifyListeners();
   }
 
@@ -45,6 +65,7 @@ class DemoEmergencyService extends ChangeNotifier {
     meshActive = false;
     scanning = false;
     nearbyRiders.clear();
+    _lanService.stopListening();
     notifyListeners();
   }
 
@@ -69,9 +90,17 @@ class DemoEmergencyService extends ChangeNotifier {
 
   // 2. Countdown Finished -> Broadcast SOS
   void broadcastSOS() {
-    print("DemoEmergencyService: Broadcasting SOS Packet to Mesh...");
+    print("DemoEmergencyService: Broadcasting SOS Packet to UDP Mesh...");
     isBroadcasting = true;
-    // In real app, we would send data via MeshModule here
+    
+    // Send Real UDP Packet
+    _lanService.broadcastMessage({
+      'type': 'SOS',
+      'sender_id': _myDeviceId,
+      'victim_name': userName,
+      'timestamp': DateTime.now().toIso8601String()
+    });
+    
     notifyListeners();
   }
 
@@ -80,6 +109,7 @@ class DemoEmergencyService extends ChangeNotifier {
     print("DemoEmergencyService: Emergency Cancelled/Resolved.");
     emergencyActive = false;
     isBroadcasting = false;
+    // Optional: Send 'CANCEL' packet
     notifyListeners();
   }
 
@@ -101,74 +131,4 @@ class DemoEmergencyService extends ChangeNotifier {
     currentIncomingAlert = null;
     notifyListeners();
   }
-  // UDP Service
-  final WifiLanService _lanService = WifiLanService.instance;
-  final String _myDeviceId = "DEV-${DateTime.now().millisecondsSinceEpoch}";
-
-  DemoEmergencyService._() {
-    _initSensor();
-    // Listen for UDP packets
-    _lanService.onDataReceived = (data) {
-      final String? type = data['type'];
-      final String? sender = data['sender_id'];
-      
-      if (sender == _myDeviceId) return; // Ignore own echoes
-
-      if (type == 'SOS') {
-        print("DemoEmergencyService: REAL UDP SOS RECEIVED!");
-        triggerIncomingAlert(data['victim_name'] ?? 'Unknown', 'Nearby (WiFi)');
-      }
-    };
-  }
-
-  // ... (Sensor Logic same as before) ...
-
-  void startMesh() {
-    print("DemoEmergencyService: Mesh Started. Scanning via UDP...");
-    meshActive = true;
-    scanning = true;
-    nearbyRiders.clear(); 
-    
-    // Start UDP Listener
-    _lanService.startListening();
-    
-    notifyListeners();
-  }
-
-  void stopMesh() {
-    meshActive = false;
-    scanning = false;
-    nearbyRiders.clear();
-    _lanService.stopListening();
-    notifyListeners();
-  }
-
-  // ... (Inject Logic same) ...
-
-  // ... (Crash Logic same) ...
-
-  void broadcastSOS() {
-    print("DemoEmergencyService: Broadcasting SOS Packet to UDP Mesh...");
-    isBroadcasting = true;
-    
-    // Send Real UDP Packet
-    _lanService.broadcastMessage({
-      'type': 'SOS',
-      'sender_id': _myDeviceId,
-      'victim_name': userName,
-      'timestamp': DateTime.now().toIso8601String()
-    });
-    
-    notifyListeners();
-  }
-
-  void cancelEmergency() {
-    print("DemoEmergencyService: Emergency Cancelled/Resolved.");
-    emergencyActive = false;
-    isBroadcasting = false;
-    // Optional: Send 'CANCEL' packet
-    notifyListeners();
-  }
-
-  // ... (Incoming Alert Logic same) ...
-
+}
