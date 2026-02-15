@@ -45,12 +45,17 @@ class P2pMeshService {
     }
   }
 
-  // 1. Start Mesh (Advertising + Discovery)
+    // 1. Start Mesh (Advertising + Discovery)
   Future<void> startMesh() async {
     if (isMeshActive) return;
     
     // Request Permissions Explicitly
     await _checkPermissions();
+
+    // Stability: Stop everything before starting to clear "Ghost" connections
+    await _nearby.stopAllEndpoints();
+    await _nearby.stopAdvertising();
+    await _nearby.stopDiscovery();
     
     isMeshActive = true;
     onDebugLog?.call("🌐 Starting Nearby Mesh (Strategy: P2P_CLUSTER)...");
@@ -70,6 +75,7 @@ class P2pMeshService {
             if (!connectedEndpoints.contains(id)) connectedEndpoints.add(id);
           } else {
             onDebugLog?.call("❌ Connection Failed: $status");
+             // Retry logic could go here, but usually auto-resolved by discovery
           }
         },
         onDisconnected: (id) {
@@ -78,6 +84,10 @@ class P2pMeshService {
         },
       );
       onDebugLog?.call("📢 Advertising Started");
+      
+      // Stability: Wait before Discovery to avoid radio conflict
+      await Future.delayed(const Duration(seconds: 2));
+
     } catch (e) {
       onDebugLog?.call("❌ Advertise Error: $e");
     }
@@ -179,6 +189,7 @@ class P2pMeshService {
     isMeshActive = false;
     await _nearby.stopAdvertising();
     await _nearby.stopDiscovery();
+    await _nearby.stopAllEndpoints(); // Clean up connections
     connectedEndpoints.clear();
     onDebugLog?.call("🛑 Mesh Stopped");
   }
