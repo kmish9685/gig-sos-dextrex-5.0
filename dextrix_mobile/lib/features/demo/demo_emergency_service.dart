@@ -231,7 +231,7 @@ class DemoEmergencyService extends ChangeNotifier {
   bool emergencyActive = false; // True = WE are crashing
   bool isBroadcasting = false; // True = Countdown finished, sending SOS
   bool scanning = false;
-  List<String> nearbyRiders = [];s
+  List<String> nearbyRiders = [];
 
   void startMesh() {
     print("DemoEmergencyService: Mesh Started. Scanning via P2P...");
