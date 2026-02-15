@@ -57,13 +57,18 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
         
         // State 1: Broadcasting (Countdown Finished)
         if (service.isBroadcasting) {
+          // VISUAL STROBE LOGIC
+          final isStrobe = _rippleController.value > 0.5;
+          final bgColor = isStrobe ? Colors.white : Colors.red[900]!;
+          final fgColor = isStrobe ? Colors.red[900]! : Colors.white;
+
           return Scaffold(
-            backgroundColor: Colors.red[900], // Darker red for active state
+            backgroundColor: bgColor, // Flash Effect
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // RIPPLE ANIMATION STACK (Fixed Size to prevent Button Jumping)
+                  // RIPPLE ANIMATION STACK (Fixed Size)
                   SizedBox(
                     width: 300,
                     height: 300,
@@ -71,27 +76,27 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
                       alignment: Alignment.center,
                       children: [
                         // Ring 1
-                        _buildRipple(1.0),
-                        // Ring 2 (Delayed phase)
-                        _buildRipple(0.7),
+                        _buildRipple(1.0, fgColor),
+                        // Ring 2 
+                        _buildRipple(0.7, fgColor),
                         // Ring 3
-                        _buildRipple(0.3),
+                        _buildRipple(0.3, fgColor),
                         
-                        // The Icon
-                        const Icon(Icons.wifi_tethering, size: 100, color: Colors.white),
+                        // The Icon (Inverted Contrast)
+                        Icon(Icons.wifi_tethering, size: 100, color: fgColor),
                       ],
                     ),
                   ),
                   
                   const SizedBox(height: 20),
-                  const Text(
+                  Text(
                     "BROADCASTING SOS...",
-                    style: TextStyle(fontSize: 24, color: Colors.white, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 24, color: fgColor, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
-                    "Sending location to nearby riders",
-                    style: TextStyle(color: Colors.white70),
+                  Text(
+                    "ALARM ACTIVE - SEEKING HELP", 
+                    style: TextStyle(color: fgColor.withOpacity(0.8), fontSize: 16),
                   ),
                   const SizedBox(height: 60),
                   ElevatedButton(
@@ -100,8 +105,8 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
                        Navigator.pop(context); 
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white, 
-                      foregroundColor: Colors.black,
+                      backgroundColor: fgColor, 
+                      foregroundColor: bgColor,
                       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15)
                     ),
                     child: const Text('I AM SAFE (RESOLVE)', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -150,7 +155,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
     );
   }
 
-  Widget _buildRipple(double startPhase) {
+  Widget _buildRipple(double startPhase, Color color) {
     double progress = (_rippleController.value + startPhase) % 1.0;
     return Opacity(
       opacity: 1.0 - progress, // Fade out as it grows
@@ -159,7 +164,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
         height: 100 + (progress * 200),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white.withOpacity(0.5), width: 3),
+          border: Border.all(color: color.withOpacity(0.5), width: 3),
         ),
       ),
     );

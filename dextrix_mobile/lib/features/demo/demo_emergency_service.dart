@@ -9,6 +9,8 @@ import 'package:geolocator/geolocator.dart'; // Moved to top
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart'; // Added for Pocket Mode
+import 'package:flutter_ringtone_player/flutter_ringtone_player.dart'; // Audio Beacon
+import 'package:flutter_sms/flutter_sms.dart'; // SMS Fallback
 
 class DemoEmergencyService extends ChangeNotifier {
 
@@ -20,6 +22,14 @@ class DemoEmergencyService extends ChangeNotifier {
   String _userName = "Dextrix Rider"; 
   String get userName => _userName;
 
+  String _emergencyContact = ""; 
+  String get emergencyContact => _emergencyContact;
+  set emergencyContact(String value) {
+    _emergencyContact = value;
+    _saveIdentity();
+    notifyListeners();
+  }
+
   set userName(String value) {
     _userName = value;
     _saveIdentity();
@@ -29,6 +39,8 @@ class DemoEmergencyService extends ChangeNotifier {
   Future<void> _saveIdentity() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('user_identity', _userName);
+    await prefs.setString('emergency_contact', _emergencyContact);
+    
     // Sync with Mesh
     P2pMeshService.instance.userName = _userName;
     if (P2pMeshService.instance.isMeshActive) {
@@ -41,6 +53,7 @@ class DemoEmergencyService extends ChangeNotifier {
   Future<void> _loadIdentity() async {
     final prefs = await SharedPreferences.getInstance();
     String? savedName = prefs.getString('user_identity');
+    _emergencyContact = prefs.getString('emergency_contact') ?? "";
     
     // Migration: If old default exists, reset it
     if (savedName == "Rider Kuldeep") savedName = null;
@@ -284,12 +297,26 @@ class DemoEmergencyService extends ChangeNotifier {
   }
 
   Timer? _sosTimer;
+  Timer? _smsTimer; // Added for SMS Grace Period
 
   // 2. Countdown Finished -> Broadcast SOS
   void broadcastSOS() {
     print("DemoEmergencyService: Broadcasting SOS Packet to P2P Mesh (Looping)...");
     isBroadcasting = true;
     
+    // AUDIO BEACON: Play Loud Alarm (Even in Background)
+    FlutterRingtonePlayer.playAlarm(looping: true, volume: 1.0, asAlarm: true);
+    
+    // SMS FALLBACK (Grace Period: 20s for Safety)
+    // Start local help instantly, but wait before scaring family.
+    if (_emergencyContact.isNotEmpty) {
+       _smsTimer?.cancel();
+       onDebugMessage?.call("⏳ SMS Scheduled in 20s (Grace Period)...");
+       _smsTimer = Timer(const Duration(seconds: 20), () {
+          if (isBroadcasting) _sendSMS();
+       });
+    }
+
     // Ensure we have a location (even if approximate)
     double lat = lastKnownLocation?['lat'] ?? 0.0;
     double lng = lastKnownLocation?['lng'] ?? 0.0;
@@ -323,14 +350,30 @@ class DemoEmergencyService extends ChangeNotifier {
     });
   }
   
+  void _sendSMS() async {
+    try {
+      String message = "SOS! $userName has crashed! Location: https://maps.google.com/?q=${lastKnownLocation?['lat']},${lastKnownLocation?['lng']}";
+      List<String> recipients = [_emergencyContact];
+      // This sends it directly if permission is granted, or opens the app
+      await sendSMS(message: message, recipients: recipients, sendDirect: true); 
+      onDebugMessage?.call("📲 SMS Sent to $_emergencyContact");
+    } catch (e) {
+      print("SMS Error: $e");
+      onDebugMessage?.call("⚠️ SMS Failed (Simulating Success for Demo)");
+    }
+  }
+  
   void cancelEmergency() {
     print("DemoEmergencyService: Emergency Cancelled/Resolved.");
     emergencyActive = false;
     isBroadcasting = false;
     _sosTimer?.cancel(); // Stop the loop
+    _smsTimer?.cancel(); // STOP THE SMS! (Safety Logic)
     
-    // Stop Haptics if they were running (Scenario C warning)
+    // Stop Haptics & Audio
     Vibration.cancel();
+    FlutterRingtonePlayer.stop(); // Stop Audio Beacon
+    
     WakelockPlus.disable();
     
     notifyListeners();
