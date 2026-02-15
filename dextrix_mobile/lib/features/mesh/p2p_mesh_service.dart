@@ -62,9 +62,11 @@ class P2pMeshService {
 
     try {
       // A. Start Advertising (Be visible)
+      // SWITCHED TO P2P_STAR (1-to-N) for better stability when Wi-Fi is on.
+      // Cluster (Mesh) often fails if Wi-Fi Radio is busy.
       await _nearby.startAdvertising(
         userName,
-        Strategy.P2P_CLUSTER,
+        Strategy.P2P_STAR, 
         onConnectionInitiated: (id, info) {
           onDebugLog?.call("🤝 Connection Initiated by ${info.endpointName} ($id)");
           _acceptConnection(id);
@@ -83,7 +85,7 @@ class P2pMeshService {
           connectedEndpoints.remove(id);
         },
       );
-      onDebugLog?.call("📢 Advertising Started");
+      onDebugLog?.call("📢 Advertising Started (Star Topology)");
       
       // Stability: Wait before Discovery to avoid radio conflict
       await Future.delayed(const Duration(seconds: 2));
@@ -96,7 +98,7 @@ class P2pMeshService {
       // B. Start Discovery (Find others)
       await _nearby.startDiscovery(
         userName,
-        Strategy.P2P_CLUSTER,
+        Strategy.P2P_STAR,
         onEndpointFound: (id, name, serviceId) {
           if (connectedEndpoints.contains(id)) {
              onDebugLog?.call("👋 Already connected to $name ($id). Skipping.");
@@ -109,7 +111,7 @@ class P2pMeshService {
           onDebugLog?.call("💨 Lost Peer: $id");
         },
       );
-      onDebugLog?.call("🔍 Discovery Started");
+      onDebugLog?.call("🔍 Discovery Started (Star Topology)");
     } catch (e) {
       onDebugLog?.call("❌ Discovery Error: $e");
     }
