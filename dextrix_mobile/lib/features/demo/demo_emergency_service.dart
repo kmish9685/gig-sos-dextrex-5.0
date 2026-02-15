@@ -231,7 +231,7 @@ class DemoEmergencyService extends ChangeNotifier {
   bool emergencyActive = false; // True = WE are crashing
   bool isBroadcasting = false; // True = Countdown finished, sending SOS
   bool scanning = false;
-  List<String> nearbyRiders = [];
+  List<String> nearbyRiders = [];s
 
   void startMesh() {
     print("DemoEmergencyService: Mesh Started. Scanning via P2P...");
@@ -257,11 +257,87 @@ class DemoEmergencyService extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ... (injectDiscoveredRider is same) ...
+  void injectDiscoveredRider(String name) {
+    if (!meshActive) return;
+    if (!nearbyRiders.contains(name)) {
+      nearbyRiders.add(name);
+      scanning = false; 
+      notifyListeners();
+    }
+  }
+
+  // --- MY EMERGENCY FLOW ---
+
+  // 1. Crash Detected -> Start Countdown
+  void simulateCrash() {
+    print("DemoEmergencyService: Crash Logic Triggered! Starting Countdown.");
+    emergencyActive = true;
+    isBroadcasting = false;
+    
+    // Safety: Ensure app stays awake during emergency
+    WakelockPlus.enable();
+    
+    // Haptic Feedback for Crash
+    Vibration.vibrate(pattern: [500, 200, 500, 200]); 
+    
+    notifyListeners();
+  }
+
+  Timer? _sosTimer;
+
+  // 2. Countdown Finished -> Broadcast SOS
+  void broadcastSOS() {
+    print("DemoEmergencyService: Broadcasting SOS Packet to P2P Mesh (Looping)...");
+    isBroadcasting = true;
+    
+    // Ensure we have a location (even if approximate)
+    double lat = lastKnownLocation?['lat'] ?? 0.0;
+    double lng = lastKnownLocation?['lng'] ?? 0.0;
+
+    // DEMO SAFEGUARD: If indoors (0,0), use a fixed "Nearby" location
+    if (lat == 0.0 && lng == 0.0) {
+       print("⚠️ GPS is 0.0 (Indoors). Using SIMULATED Location for Demo.");
+       lat = 28.4595; 
+       lng = 77.0266;
+    }
+
+    // Send Real P2P Packet (Repeatedly)
+    _sosTimer?.cancel();
+    _sosTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (!isBroadcasting) {
+           timer.cancel();
+           return;
+        }
+        
+        final packet = {
+          'type': 'SOS',
+          'sender_id': _myDeviceId,
+          'victim_name': userName,
+          'timestamp': DateTime.now().toIso8601String(),
+          'lat': lat,
+          'lng': lng
+        };
+        
+        _p2pService.broadcastMessage(packet);
+        logPacket("TX: SOS SENT -> ${packet['victim_name']}");
+    });
+  }
+  
+  void cancelEmergency() {
+    print("DemoEmergencyService: Emergency Cancelled/Resolved.");
+    emergencyActive = false;
+    isBroadcasting = false;
+    _sosTimer?.cancel(); // Stop the loop
+    
+    // Stop Haptics if they were running (Scenario C warning)
+    Vibration.cancel();
+    WakelockPlus.disable();
+    
+    notifyListeners();
+  }
 
   // --- INCOMING ALERT FLOW (RESPONDER) ---
 
-  // SCENARIO E: The Relay (Store & Forward)
   // SCENARIO E: The Relay (Store & Forward)
   List<Map<String, dynamic>> relayQueue = [];
   bool isAlarmMuted = false;
@@ -288,9 +364,6 @@ class DemoEmergencyService extends ChangeNotifier {
        Vibration.vibrate(pattern: [500, 2000, 500, 2000], repeat: 0);
     }
     
-    // ... rest of logic
-    
-    // ... rest of logic
     // Store for Relay (Scenario E)
     final packet = {
       'victim': victimName,
