@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:nearby_connections/nearby_connections.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class P2pMeshService {
   static final P2pMeshService instance = P2pMeshService._();
@@ -19,14 +20,14 @@ class P2pMeshService {
   void Function(Map<String, dynamic> data)? onDataReceived;
   void Function(String msg)? onDebugLog;
 
+
   void init() {
     // Check permissions on init
     _checkPermissions();
   }
 
-import 'package:permission_handler/permission_handler.dart';
-
-// ... inside class ...
+  //State
+  // ... inside class ...
 
   Future<void> _checkPermissions() async {
     // Android 12+ requires explicit runtime permissions for Nearby
