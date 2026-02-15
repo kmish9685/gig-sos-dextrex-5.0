@@ -1,14 +1,10 @@
-import 'dart:async';
-import 'mesh_module.dart';
-import 'mesh_provider.dart';
-
-import 'nearby_mesh_provider.dart';
+import 'simulated_mesh_provider.dart';
 
 class MeshService implements MeshModule {
   final MeshProvider _provider;
 
   MeshService({MeshProvider? provider}) 
-      : _provider = provider ?? NearbyMeshProvider();
+      : _provider = provider ?? SimulatedMeshProvider();
 
   @override
   Stream<List<String>> get peersStream => _provider.peersStream;
@@ -38,6 +34,5 @@ class MeshService implements MeshModule {
     print("[MeshService] Connecting to $peerId...");
   }
   
-  // Expose for Demo Controller to access mock features if needed
   MeshProvider get provider => _provider;
 }

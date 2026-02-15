@@ -62,13 +62,19 @@ class DemoController implements DemoModule {
   }
 
   void simulateIncomingSOS() {
-    // Only works if using Mock or we force injection
-    // For Nearby, we can't easily inject without a second device,
-    // so we rely on the MockProvider logic OR allow loopback if we implemented it.
-    // For now, let's just trigger the EmergencyState directly to Simulate "Received"
-    // This is a "God Mode" cheat.
-    
-    _emergencyModule.acknowledgeAlert("demo-remote-alert"); // Trigger UI reaction
-    print("[DemoController] Simulated Incoming Alert Triggered (UI Only)");
+    if (_meshService.provider is SimulatedMeshProvider) {
+      (_meshService.provider as SimulatedMeshProvider).injectIncomingMessage({
+        'alert_id': 'demo-alert-${DateTime.now().millisecondsSinceEpoch}',
+        'device_id': 'Rider-Simulated',
+        'timestamp': DateTime.now().toIso8601String(),
+        'alert_type': 'manual',
+        'latitude': 28.4595,
+        'longitude': 77.0266,
+      });
+      print("[DemoController] Injected fake SOS message for demo.");
+    } else {
+       // Fallback or log if provider isn't simulated
+       print("[DemoController] Provider is not Simulated, cannot inject.");
+    }
   }
 }
