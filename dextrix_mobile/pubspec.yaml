@@ -29,8 +29,8 @@ dependencies:
   path: ^1.9.0
   shared_preferences: ^2.2.0
 
-  # Connectivity (True P2P)
-  flutter_nearby_connections: ^1.2.5 # Downgrade to valid version
+  # Connectivity (True P2P - Google Nearby API)
+  nearby_connections: ^6.0.0
   
 dev_dependencies:
   flutter_test:

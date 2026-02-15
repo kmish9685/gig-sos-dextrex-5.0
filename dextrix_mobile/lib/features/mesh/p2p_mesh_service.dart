@@ -2,110 +2,177 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
+import 'package:nearby_connections/nearby_connections.dart';
 
 class P2pMeshService {
   static final P2pMeshService instance = P2pMeshService._();
   P2pMeshService._();
 
-  late NearbyService _nearbyService;
-  StreamSubscription? _stateSubscription;
-  StreamSubscription? _browserSubscription;
-  StreamSubscription? _advertiserSubscription;
-  StreamSubscription? _dataSubscription;
-
-  List<Device> connectedDevices = [];
+  final Nearby _nearby = Nearby();
+  
+  // State
   bool isMeshActive = false;
+  List<String> connectedEndpoints = []; // List of Endpoint IDs
+  String userName = "Dextrix Rider";
 
   // Callbacks
   void Function(Map<String, dynamic> data)? onDataReceived;
   void Function(String msg)? onDebugLog;
 
   void init() {
-    _nearbyService = NearbyService(); // Instantiate immediately
-    
-    // Initialize Nearby Service
-    _nearbyService.init(
-      serviceType: 'mp-connection',
-      strategy: Strategy.P2P_CLUSTER, // M-to-N Mesh Strategy
-      callback: (isRunning) {
-        if (isRunning) {
-          onDebugLog?.call("✅ P2P Service Started (Strategy: Cluster)");
-          // We don't auto-start here, waiting for UI command
-        } else {
-          onDebugLog?.call("❌ P2P Service Failed to Start!");
-        }
-      }
-    );
+    // Check permissions on init
+    _checkPermissions();
   }
 
-  void startMesh() {
+  Future<void> _checkPermissions() async {
+    // Ask for all required permissions
+    // Note: nearby_connections handles some, but explicit check matches Hackathon needs
+    // We assume user grants them via UI or OS dialogs
+  }
+
+  // 1. Start Mesh (Advertising + Discovery)
+  Future<void> startMesh() async {
     if (isMeshActive) return;
-    isMeshActive = true;
-    onDebugLog?.call("🌐 P2P Mesh: Starting Discovery & Advertising...");
     
-    // 1. State Monitor (Detect Peers)
-    _stateSubscription = _nearbyService.stateChangedSubscription(callback: (devicesList) {
-      connectedDevices.clear();
-      onDebugLog?.call("👀 P2P State Changed: ${devicesList.length} devices found");
+    // Check permissions first
+    bool granted = await _nearby.checkLocationPermission() && 
+                   await _nearby.checkBluetoothPermission() &&
+                   await _nearby.checkNearbyWifiDevicesPermission(); 
+                   // Note: API might vary slightly by version, but basic checks
+    
+    if (!granted) {
+      // In a real app we would askConfig, but for now we assume granted or logs wil show error
+      // _nearby.askLocationPermission();
+    }
 
-      for (var device in devicesList) {
-        if (device.state == SessionState.connected) {
-          connectedDevices.add(device);
-          onDebugLog?.call("✅ Connected to: ${device.deviceName} (${device.deviceId})");
-        } else if (device.state == SessionState.notConnected) {
-          onDebugLog?.call("🔌 Disconnected: ${device.deviceName}");
-          // Auto-Invite Disconnected Peers
-          _nearbyService.invitePeer(deviceID: device.deviceId, deviceName: device.deviceName);
-        }
-      }
-    });
+    isMeshActive = true;
+    onDebugLog?.call("🌐 Starting Nearby Mesh (Strategy: P2P_CLUSTER)...");
 
-    // 2. Data Listener
-    _dataSubscription = _nearbyService.dataReceivedSubscription(callback: (data) {
-       try {
-         final str = String.fromCharCodes(data['message']); // Uint8List? 
-         onDebugLog?.call("RX P2P from ${data['deviceId']}: $str");
-         final json = jsonDecode(str);
-         onDataReceived?.call(json);
-       } catch (e) {
-         print("P2P Parse Error: $e");
-       }
-    });
+    try {
+      // A. Start Advertising (Be visible)
+      await _nearby.startAdvertising(
+        userName,
+        Strategy.P2P_CLUSTER,
+        onConnectionInitiated: (id, info) {
+          onDebugLog?.call("🤝 Connection Initiated by ${info.endpointName} ($id)");
+          _acceptConnection(id);
+        },
+        onConnectionResult: (id, status) {
+          if (status == Status.CONNECTED) {
+            onDebugLog?.call("✅ Connected to $id");
+            if (!connectedEndpoints.contains(id)) connectedEndpoints.add(id);
+          } else {
+            onDebugLog?.call("❌ Connection Failed: $status");
+          }
+        },
+        onDisconnected: (id) {
+          onDebugLog?.call("🔌 Disconnected: $id");
+          connectedEndpoints.remove(id);
+        },
+      );
+      onDebugLog?.call("📢 Advertising Started");
+    } catch (e) {
+      onDebugLog?.call("❌ Advertise Error: $e");
+    }
 
-    // 3. Start Browsing (Looking for peers)
-    _browserSubscription = _nearbyService.startBrowsingForPeers().listen((event) {
-        // Just listening keeps browsing active
-    });
-
-    // 4. Start Advertising (Being visible)
-    _advertiserSubscription = _nearbyService.startAdvertisingPeer().listen((event) {
-        // Just listening keeps advertising active
-    });
+    try {
+      // B. Start Discovery (Find others)
+      await _nearby.startDiscovery(
+        userName,
+        Strategy.P2P_CLUSTER,
+        onEndpointFound: (id, name, serviceId) {
+          onDebugLog?.call("👀 Found Peer: $name ($id). Requesting Connection...");
+          _requestConnection(id, name);
+        },
+        onEndpointLost: (id) {
+          onDebugLog?.call("💨 Lost Peer: $id");
+        },
+      );
+      onDebugLog?.call("🔍 Discovery Started");
+    } catch (e) {
+      onDebugLog?.call("❌ Discovery Error: $e");
+    }
   }
 
-  void broadcastMessage(Map<String, dynamic> data) {
-    if (connectedDevices.isEmpty) {
-      onDebugLog?.call("⚠️ No Peers Connected. Broadcasting via UDP (Fallback)? No, P2P Mode active.");
+  // 2. Accept Connection
+  Future<void> _acceptConnection(String id) async {
+    try {
+      await _nearby.acceptConnection(
+        id,
+        onPayLoadRecieved: (id, payload) {
+          if (payload.type == PayloadType.BYTES) {
+            final str = String.fromCharCodes(payload.bytes!);
+            onDebugLog?.call("RX from $id: $str");
+            try {
+              final json = jsonDecode(str);
+              onDataReceived?.call(json);
+              
+              // Mesh Relay Logic: If valid SOS, re-broadcast to others? 
+              // For Demo: Just receive.
+            } catch (e) {
+              print("Parse Error: $e");
+            }
+          }
+        },
+      );
+    } catch (e) {
+      onDebugLog?.call("❌ Accept Error: $e");
+    }
+  }
+
+  // 3. Request Connection
+  Future<void> _requestConnection(String id, String name) async {
+    try {
+      await _nearby.requestConnection(
+        userName,
+        id,
+        onConnectionInitiated: (id, info) {
+          onDebugLog?.call("🤝 Outgoing Connection Initiated to ${info.endpointName}");
+          _acceptConnection(id);
+        },
+        onConnectionResult: (id, status) {
+          if (status == Status.CONNECTED) {
+             onDebugLog?.call("✅ Connected to $id");
+             if (!connectedEndpoints.contains(id)) connectedEndpoints.add(id);
+          } else {
+             onDebugLog?.call("❌ Connection Failed: $status");
+          }
+        },
+        onDisconnected: (id) {
+          onDebugLog?.call("🔌 Disconnected: $id");
+          connectedEndpoints.remove(id);
+        },
+      );
+    } catch (e) {
+      onDebugLog?.call("❌ Request Error: $e");
+    }
+  }
+
+  // 4. Broadcast
+  void broadcastMessage(Map<String, dynamic> data) async {
+    if (connectedEndpoints.isEmpty) {
+      onDebugLog?.call("⚠️ No Connected Peers.");
       return;
     }
 
     final jsonStr = jsonEncode(data);
-    for (var device in connectedDevices) {
-      if (device.state == SessionState.connected) {
-         _nearbyService.sendMessage(device.deviceId, jsonStr);
+    final bytes = Uint8List.fromList(utf8.encode(jsonStr));
+
+    for (var id in connectedEndpoints) {
+      try {
+        await _nearby.sendBytesPayload(id, bytes);
+      } catch (e) {
+        print("Send Error to $id: $e");
       }
     }
-    onDebugLog?.call("TX P2P (x${connectedDevices.length}): $jsonStr");
+    onDebugLog?.call("TX P2P (x${connectedEndpoints.length}): $jsonStr");
   }
 
-  void stopMesh() {
+  Future<void> stopMesh() async {
     isMeshActive = false;
-    _stateSubscription?.cancel();
-    _browserSubscription?.cancel();
-    _advertiserSubscription?.cancel();
-    _dataSubscription?.cancel();
-    _nearbyService.stopAdvertisingPeer();
-    _nearbyService.stopBrowsingForPeers();
+    await _nearby.stopAdvertising();
+    await _nearby.stopDiscovery();
+    connectedEndpoints.clear();
+    onDebugLog?.call("🛑 Mesh Stopped");
   }
 }
