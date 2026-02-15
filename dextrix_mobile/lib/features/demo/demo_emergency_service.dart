@@ -290,41 +290,22 @@ class DemoEmergencyService extends ChangeNotifier {
   final FlutterTts _tts = FlutterTts();
 
   // 2. Countdown Finished -> Broadcast SOS
-  void broadcastSOS() async {
+  void broadcastSOS() {
     print("DemoEmergencyService: Broadcasting SOS Packet to P2P Mesh (Looping)...");
     isBroadcasting = true;
-    
-    // VOCAL BEACON: Scream for Help
-    try {
-      await _tts.setLanguage("en-US");
-      await _tts.setSpeechRate(0.5); 
-      await _tts.setVolume(1.0);
-      await _tts.setPitch(1.0);
-      
-      _ttsTimer?.cancel();
-      _tts.speak("Emergency! emergency! Accident Detected! Please Help!");
-      
-      _ttsTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-         if (isBroadcasting) {
-            _tts.speak("Emergency! emergency! Please Help!");
-         }
-      });
-    } catch (e) {
-      print("TTS Error: $e");
-    }
 
-    // Ensure we have a location (even if approximate)
+    // 1. NETWORK FIRST (Critical Path)
+    // Ensure we have a location
     double lat = lastKnownLocation?['lat'] ?? 0.0;
     double lng = lastKnownLocation?['lng'] ?? 0.0;
 
-    // DEMO SAFEGUARD: If indoors (0,0), use a fixed "Nearby" location
     if (lat == 0.0 && lng == 0.0) {
        print("⚠️ GPS is 0.0 (Indoors). Using SIMULATED Location for Demo.");
        lat = 28.4595; 
        lng = 77.0266;
     }
 
-    // Send Real P2P Packet (Repeatedly)
+    // Start P2P Loop IMMEDIATELY
     _sosTimer?.cancel();
     _sosTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (!isBroadcasting) {
@@ -344,6 +325,29 @@ class DemoEmergencyService extends ChangeNotifier {
         _p2pService.broadcastMessage(packet);
         logPacket("TX: SOS SENT -> ${packet['victim_name']}");
     });
+    
+    // 2. AUDIO SECOND (Feedback)
+    _startAudioBeacon();
+  }
+
+  Future<void> _startAudioBeacon() async {
+    try {
+      await _tts.setLanguage("en-US");
+      await _tts.setSpeechRate(0.5); 
+      await _tts.setVolume(1.0);
+      await _tts.setPitch(1.0);
+      
+      _ttsTimer?.cancel();
+      _tts.speak("Emergency! emergency! Accident Detected! Please Help!");
+      
+      _ttsTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+         if (isBroadcasting) {
+            _tts.speak("Emergency! emergency! Please Help!");
+         }
+      });
+    } catch (e) {
+      print("TTS Error: $e");
+    }
   }
   
   void cancelEmergency() {
