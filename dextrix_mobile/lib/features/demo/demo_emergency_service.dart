@@ -7,6 +7,7 @@ import '../mesh/p2p_mesh_service.dart'; // Moved to top
 import 'package:geolocator/geolocator.dart'; // Moved to top
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wakelock_plus/wakelock_plus.dart'; // Added for Pocket Mode
 
 class DemoEmergencyService extends ChangeNotifier {
   static final DemoEmergencyService instance = DemoEmergencyService._();
