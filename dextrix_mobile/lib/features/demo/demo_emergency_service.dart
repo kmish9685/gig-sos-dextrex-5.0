@@ -10,7 +10,6 @@ import 'package:geolocator/geolocator.dart'; // Moved to top
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart'; // Added for Pocket Mode
 import 'package:flutter_tts/flutter_tts.dart'; // Vocal Beacon
-import 'package:url_launcher/url_launcher.dart'; // SMS Fallback (via App)
 
 class DemoEmergencyService extends ChangeNotifier {
 
@@ -22,14 +21,6 @@ class DemoEmergencyService extends ChangeNotifier {
   String _userName = "Dextrix Rider"; 
   String get userName => _userName;
 
-  String _emergencyContact = ""; 
-  String get emergencyContact => _emergencyContact;
-  set emergencyContact(String value) {
-    _emergencyContact = value;
-    _saveIdentity();
-    notifyListeners();
-  }
-
   set userName(String value) {
     _userName = value;
     _saveIdentity();
@@ -39,7 +30,6 @@ class DemoEmergencyService extends ChangeNotifier {
   Future<void> _saveIdentity() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('user_identity', _userName);
-    await prefs.setString('emergency_contact', _emergencyContact);
     
     // Sync with Mesh
     P2pMeshService.instance.userName = _userName;
@@ -53,7 +43,6 @@ class DemoEmergencyService extends ChangeNotifier {
   Future<void> _loadIdentity() async {
     final prefs = await SharedPreferences.getInstance();
     String? savedName = prefs.getString('user_identity');
-    _emergencyContact = prefs.getString('emergency_contact') ?? "";
     
     // Migration: If old default exists, reset it
     if (savedName == "Rider Kuldeep") savedName = null;
@@ -297,7 +286,6 @@ class DemoEmergencyService extends ChangeNotifier {
   }
 
   Timer? _sosTimer;
-  Timer? _smsTimer; // Added for SMS Grace Period
   Timer? _ttsTimer; // Added for Vocal Loop
   final FlutterTts _tts = FlutterTts();
 
@@ -306,19 +294,16 @@ class DemoEmergencyService extends ChangeNotifier {
     print("DemoEmergencyService: Broadcasting SOS Packet to P2P Mesh (Looping)...");
     isBroadcasting = true;
     
-    // VOCAL BEACON: Scream for Help (Replaces Ringtone)
-    // Config TTS
+    // VOCAL BEACON: Scream for Help
     try {
       await _tts.setLanguage("en-US");
-      await _tts.setSpeechRate(0.5); // Clear and Urgent
+      await _tts.setSpeechRate(0.5); 
       await _tts.setVolume(1.0);
       await _tts.setPitch(1.0);
       
       _ttsTimer?.cancel();
-      // Speak immediately
       _tts.speak("Emergency! emergency! Accident Detected! Please Help!");
       
-      // Loop every 5 seconds
       _ttsTimer = Timer.periodic(const Duration(seconds: 5), (_) {
          if (isBroadcasting) {
             _tts.speak("Emergency! emergency! Please Help!");
@@ -326,16 +311,6 @@ class DemoEmergencyService extends ChangeNotifier {
       });
     } catch (e) {
       print("TTS Error: $e");
-    }
-
-    // SMS FALLBACK (Grace Period: 20s for Safety)
-    // Start local help instantly, but wait before scaring family.
-    if (_emergencyContact.isNotEmpty) {
-       _smsTimer?.cancel();
-       onDebugMessage?.call("⏳ SMS Scheduled in 20s (Grace Period)...");
-       _smsTimer = Timer(const Duration(seconds: 20), () {
-          if (isBroadcasting) _sendSMS();
-       });
     }
 
     // Ensure we have a location (even if approximate)
@@ -371,31 +346,16 @@ class DemoEmergencyService extends ChangeNotifier {
     });
   }
   
-  void _sendSMS() async {
-    try {
-      // Use URL Launcher to open SMS app (Safe & Guaranteed)
-      final message = Uri.encodeComponent("SOS! $userName has crashed! Location: https://maps.google.com/?q=${lastKnownLocation?['lat']},${lastKnownLocation?['lng']}");
-      final uri = Uri.parse("sms:$_emergencyContact?body=$message");
-      
-      await launchUrl(uri); 
-      onDebugMessage?.call("📲 SMS App Opened. Please press Send!");
-    } catch (e) {
-      print("SMS Error: $e");
-      onDebugMessage?.call("⚠️ SMS Failed: $e");
-    }
-  }
-  
   void cancelEmergency() {
     print("DemoEmergencyService: Emergency Cancelled/Resolved.");
     emergencyActive = false;
     isBroadcasting = false;
     _sosTimer?.cancel(); // Stop the loop
-    _smsTimer?.cancel(); // STOP THE SMS! (Safety Logic)
     _ttsTimer?.cancel(); // Stop Vocal Loop
     
     // Stop Haptics & Audio
     Vibration.cancel();
-    _tts.stop(); // Silence the Voice
+    _tts.stop(); 
     
     WakelockPlus.disable();
     

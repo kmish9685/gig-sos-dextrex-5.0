@@ -43,39 +43,6 @@ class SettingsScreen extends StatelessWidget {
               );
             },
           ),
-          ListTile(
-            leading: const Icon(Icons.phone_emergency, color: Colors.red),
-            title: const Text("Emergency Contact (SMS Fallback)"),
-            subtitle: Text(service.emergencyContact.isEmpty ? "Tap to Add Number" : service.emergencyContact),
-            trailing: const Icon(Icons.edit, color: Colors.blue),
-            onTap: () {
-              showDialog(
-                context: context, 
-                builder: (context) {
-                  final controller = TextEditingController(text: service.emergencyContact);
-                  return AlertDialog(
-                    title: const Text("Set Emergency Contact"),
-                    content: TextField(
-                      controller: controller,
-                      keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(hintText: "+91 99999 99999"),
-                    ),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-                      ElevatedButton(
-                        onPressed: () {
-                          service.emergencyContact = controller.text;
-                          service.notifyListeners(); 
-                          Navigator.pop(context);
-                        }, 
-                        child: const Text("Save")
-                      )
-                    ]
-                  );
-                }
-              );
-            },
-          ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.info),
