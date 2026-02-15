@@ -276,9 +276,11 @@ class DemoEmergencyService extends ChangeNotifier {
     notifyListeners();
   }
 
+  Timer? _sosTimer;
+
   // 2. Countdown Finished -> Broadcast SOS
   void broadcastSOS() {
-    print("DemoEmergencyService: Broadcasting SOS Packet to P2P Mesh...");
+    print("DemoEmergencyService: Broadcasting SOS Packet to P2P Mesh (Looping)...");
     isBroadcasting = true;
     
     // Ensure we have a location (even if approximate)
@@ -286,37 +288,47 @@ class DemoEmergencyService extends ChangeNotifier {
     double lng = lastKnownLocation?['lng'] ?? 0.0;
 
     // DEMO SAFEGUARD: If indoors (0,0), use a fixed "Nearby" location
-    // so the other phone can calculate a distance (~150m)
     if (lat == 0.0 && lng == 0.0) {
        print("⚠️ GPS is 0.0 (Indoors). Using SIMULATED Location for Demo.");
-       lat = 28.4595; // Demo point matching Trigger Incoming Alert
+       lat = 28.4595; 
        lng = 77.0266;
     }
 
-    // Send Real P2P Packet
-    final packet = {
-      'type': 'SOS',
-      'sender_id': _myDeviceId,
-      'victim_name': userName,
-      'timestamp': DateTime.now().toIso8601String(),
-      'lat': lat,
-      'lng': lng
-    };
-    
-    _p2pService.broadcastMessage(packet);
-    logPacket("TX: SOS SENT -> ${packet['victim_name']}");
-    
-    notifyListeners();
+    // Send Real P2P Packet (Repeatedly)
+    _sosTimer?.cancel();
+    _sosTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (!isBroadcasting) {
+           timer.cancel();
+           return;
+        }
+        
+        final packet = {
+          'type': 'SOS',
+          'sender_id': _myDeviceId,
+          'victim_name': userName,
+          'timestamp': DateTime.now().toIso8601String(),
+          'lat': lat,
+          'lng': lng
+        };
+        
+        _p2pService.broadcastMessage(packet);
+        logPacket("TX: SOS SENT -> ${packet['victim_name']}");
+    });
   }
-
-  // 3. Cancel/Resolve
+  
   void cancelEmergency() {
     print("DemoEmergencyService: Emergency Cancelled/Resolved.");
     emergencyActive = false;
     isBroadcasting = false;
-    // Optional: Send 'CANCEL' packet
+    _sosTimer?.cancel(); // Stop the loop
+    
+    // Stop Haptics if they were running (Scenario C warning)
+    Vibration.cancel();
+    WakelockPlus.disable();
+    
     notifyListeners();
   }
+
 
   // --- INCOMING ALERT FLOW (RESPONDER) ---
 
