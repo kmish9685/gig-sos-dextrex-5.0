@@ -9,7 +9,7 @@ class SensorService implements SensorModule {
   StreamSubscription<AccelerometerEvent>? _accelSubscription; // Uses accelerometer (gravity excluded) or userAccelerometer
   
   // Refined Configuration
-  static const double CRASH_THRESHOLD_G = 2.9; // Spike threshold
+  static const double CRASH_THRESHOLD_G = 2.2; // Lowered for Demo (was 2.9)
   static const double INACTIVITY_THRESHOLD_G = 1.1; // Near 1G (or 0G if LinearAcceleration)
   static const int POST_CRASH_WAIT_MS = 2000; // Check for 2s after spike
   static const int DEBOUNCE_MS = 10000; // 10s cool-down
