@@ -24,17 +24,32 @@ class P2pMeshService {
     _checkPermissions();
   }
 
+import 'package:permission_handler/permission_handler.dart';
+
+// ... inside class ...
+
   Future<void> _checkPermissions() async {
-    // Note: In v4.3.0, we rely on OS dialogs or external permission handler.
-    // Assuming permissions are granted for this Hackathon Demo.
+    // Android 12+ requires explicit runtime permissions for Nearby
+    Map<Permission, PermissionStatus> statuses = await [
+      Permission.location,
+      Permission.bluetooth,
+      Permission.bluetoothScan,
+      Permission.bluetoothAdvertise,
+      Permission.bluetoothConnect,
+      Permission.nearbyWifiDevices
+    ].request();
+
+    if (statuses.values.any((status) => status.isDenied)) {
+      onDebugLog?.call("❌ Permissions Denied! Check Settings.");
+    }
   }
 
   // 1. Start Mesh (Advertising + Discovery)
   Future<void> startMesh() async {
     if (isMeshActive) return;
     
-    // Permissions are assumed or handled by UI before this call
-    // If explicit check is needed, use permission_handler package
+    // Request Permissions Explicitly
+    await _checkPermissions();
     
     isMeshActive = true;
     onDebugLog?.call("🌐 Starting Nearby Mesh (Strategy: P2P_CLUSTER)...");

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'ui/screens/home_screen.dart';
+import 'ui/screens/settings_screen.dart';
 
 void main() {
   runApp(const DextrixApp());
@@ -22,6 +23,9 @@ class DextrixApp extends StatelessWidget {
         ),
       ),
       home: const HomeScreen(),
+      routes: {
+        '/settings': (context) => const SettingsScreen(),
+      },
     );
   }
 }
