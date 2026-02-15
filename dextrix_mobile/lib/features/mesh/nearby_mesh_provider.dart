@@ -133,8 +133,8 @@ class NearbyMeshProvider implements MeshProvider {
     // Warning: PayloadID is auto-generated usually
     try {
         await Nearby().sendBytesPayload(
-            _connectedEndpoints.keys.toList(), 
-            Uint8List.fromList(bytes)
+            _connectedEndpoints.keys.first, 
+            Uint8List.fromList(List<int>.from(bytes))
         );
         print("[NearbyMesh] Broadcast sent to ${_connectedEndpoints.length} peers.");
     } catch (e) {
