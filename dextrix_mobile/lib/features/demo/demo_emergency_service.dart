@@ -6,13 +6,46 @@ import 'package:vibration/vibration.dart';
 import '../mesh/p2p_mesh_service.dart'; // Moved to top
 import 'package:geolocator/geolocator.dart'; // Moved to top
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 class DemoEmergencyService extends ChangeNotifier {
   static final DemoEmergencyService instance = DemoEmergencyService._();
   
   final SensorService _sensorService = SensorService();
   
-  // PRD: User Identity
-  String userName = "Rider Kuldeep"; 
+  // PRD: User Identity (Persisted)
+  String _userName = "Dextrix Rider"; 
+  String get userName => _userName;
+
+  set userName(String value) {
+    _userName = value;
+    _saveIdentity();
+    notifyListeners();
+  }
+
+  Future<void> _saveIdentity() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_identity', _userName);
+    // Sync with Mesh
+    P2pMeshService.instance.userName = _userName;
+    if (P2pMeshService.instance.isMeshActive) {
+       await P2pMeshService.instance.stopMesh();
+       await Future.delayed(const Duration(milliseconds: 500));
+       await P2pMeshService.instance.startMesh();
+    }
+  }
+
+  Future<void> _loadIdentity() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? savedName = prefs.getString('user_identity');
+    
+    // Migration: If old default exists, reset it
+    if (savedName == "Rider Kuldeep") savedName = null;
+    
+    _userName = savedName ?? "Dextrix Rider";
+    P2pMeshService.instance.userName = _userName;
+    notifyListeners();
+  } 
 
   // Feature: Last Known Location (Lone Wolf Recovery)
   // Saved every 5 mins to local storage in case battery dies in dead zone
@@ -40,6 +73,7 @@ class DemoEmergencyService extends ChangeNotifier {
   void Function(String msg)? onDebugMessage;
 
   DemoEmergencyService._() {
+    _loadIdentity();
     _initSensor();
     
     // Initialize P2P
@@ -221,6 +255,11 @@ class DemoEmergencyService extends ChangeNotifier {
 
   void triggerIncomingAlert(String victimName, String distance, {double? lat, double? lng}) {
     print("DemoEmergencyService: RECEIVED SOS from $victimName!");
+    
+    // HEAVY ALARM (Even if silent mode, vibration usually works)
+    // Pattern: Wait 0ms, Vibrate 1000ms, Wait 500ms, Vibrate 1000ms...
+    Vibration.vibrate(pattern: [0, 1000, 500, 1000, 500, 1000, 500, 1000]);
+
     currentIncomingAlert = {
       'victim': victimName,
       'distance': distance,
