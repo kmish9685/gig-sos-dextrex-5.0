@@ -15,22 +15,4 @@ abstract class DemoModule {
   void injectFakePeer(String deviceId);
 }
 
-class DemoController implements DemoModule {
-  @override
-  bool get isGodModeEnabled => false; // TODO: Implement toggle
 
-  @override
-  void forceState(String stateName) {
-    // TODO: Override EmergencyModule state
-  }
-
-  @override
-  void toggleNetworkSimulation(bool isOnline) {
-    // TODO: Mock network status
-  }
-
-  @override
-  void injectFakePeer(String deviceId) {
-    // TODO: Add to MeshModule peer list
-  }
-}

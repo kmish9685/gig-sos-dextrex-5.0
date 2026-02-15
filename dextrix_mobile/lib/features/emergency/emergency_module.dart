@@ -26,27 +26,4 @@ abstract class EmergencyModule {
   void relayAlert(String alertId);
 }
 
-class EmergencyService implements EmergencyModule {
-  @override
-  Stream<AppSafetyState> get stateStream => Stream.value(AppSafetyState.idle); // TODO: Implement
 
-  @override
-  void triggerEmergency() {
-    // TODO: Transition to preAlert
-  }
-
-  @override
-  void cancelEmergency() {
-    // TODO: Revert to idle
-  }
-
-  @override
-  void acknowledgeAlert(String alertId) {
-    // TODO: Update UI/Log
-  }
-
-  @override
-  void relayAlert(String alertId) {
-    // TODO: Activate mesh relay
-  }
-}

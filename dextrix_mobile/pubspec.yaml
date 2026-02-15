@@ -1,0 +1,42 @@
+name: dextrix_mobile
+description: Dextrix 5.0 - Offline-First SOS Mesh Network App
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # State Management
+  provider: ^6.0.0
+  
+  # Sensors & Hardware
+  sensors_plus: ^6.0.0
+  geolocator: ^13.0.0
+  permission_handler: ^11.0.0
+  vibration: ^2.0.0 # for haptic feedback on SOS
+
+  # Utils
+  rxdart: ^0.27.7
+  uuid: ^4.0.0
+  equatable: ^2.0.5
+  intl: ^0.19.0
+  
+  # Local Storage
+  sqflite: ^2.3.0
+  path: ^1.9.0
+  shared_preferences: ^2.2.0
+
+  # Connectivity (Placeholders for now, will implement logic later)
+  # flutter_nearby_connections: ^1.2.5  <- Example, but we'll wrap it
+  
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true

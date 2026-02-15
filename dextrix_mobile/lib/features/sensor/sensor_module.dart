@@ -18,26 +18,4 @@ abstract class SensorModule {
   void simulateCrash();
 }
 
-/// Implementation stub for SensorModule
-class SensorService implements SensorModule {
-  @override
-  Stream<List<double>> get accelerometerStream => Stream.empty(); // TODO: Implement
 
-  @override
-  Stream<double> get crashDetectionStream => Stream.empty(); // TODO: Implement
-
-  @override
-  Future<void> startMonitoring() async {
-    // TODO: Initialize sensors
-  }
-
-  @override
-  Future<void> stopMonitoring() async {
-    // TODO: Dispose sensors
-  }
-
-  @override
-  void simulateCrash() {
-    // TODO: Emit event to stream
-  }
-}

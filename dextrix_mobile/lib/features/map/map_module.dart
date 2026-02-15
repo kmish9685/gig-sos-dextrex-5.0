@@ -18,25 +18,4 @@ abstract class MapModule {
   void addSimulatedAlert(double lat, double lng);
 }
 
-class MapService implements MapModule {
-  @override
-  Stream<Map<String, double>> get locationStream => Stream.empty(); // TODO: Implement
 
-  @override
-  Stream<List<Map<String, dynamic>>> get activeAlertsStream => Stream.empty(); // TODO: Implement
-
-  @override
-  Future<void> startTracking() async {
-    // TODO: Init location services
-  }
-
-  @override
-  Future<void> stopTracking() async {
-    // TODO: Stop location services
-  }
-
-  @override
-  void addSimulatedAlert(double lat, double lng) {
-    // TODO: Add to local state
-  }
-}

@@ -21,31 +21,4 @@ abstract class MeshModule {
   Future<void> connectToPeer(String peerId);
 }
 
-/// Implementation stub for MeshModule
-class MeshService implements MeshModule {
-  @override
-  Stream<List<String>> get peersStream => Stream.empty(); // TODO: Implement
 
-  @override
-  Stream<Map<String, dynamic>> get messageStream => Stream.empty(); // TODO: Implement
-
-  @override
-  Future<void> startDiscovery() async {
-    // TODO: Init BLE/WiFi Direct
-  }
-
-  @override
-  Future<void> stopDiscovery() async {
-    // TODO: Dispose resources
-  }
-
-  @override
-  Future<void> broadcastMessage(Map<String, dynamic> payload) async {
-    // TODO: Send data to mesh
-  }
-
-  @override
-  Future<void> connectToPeer(String peerId) async {
-    // TODO: Establish connection
-  }
-}
