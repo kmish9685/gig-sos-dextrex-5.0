@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../features/demo/demo_emergency_service.dart';
-import 'emergency_screen.dart';
-import 'map_screen.dart';
-import 'demo_screen.dart';
+import 'demo_screen.dart'; // Direct navigation
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
