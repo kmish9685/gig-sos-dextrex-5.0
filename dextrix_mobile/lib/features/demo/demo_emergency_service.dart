@@ -158,6 +158,9 @@ class DemoEmergencyService extends ChangeNotifier {
     print("DemoEmergencyService: Listening for Network Changes...");
     Connectivity().onConnectivityChanged.listen((result) {
       if (result != ConnectivityResult.none) {
+         // SCENARIO E: Relay Upload (Auto-Upload when Internet returns)
+         simulateNetworkRestoration();
+         
          // Network is back (WiFi or Hotspot)
          print("DemoEmergencyService: Network Restored. Restarting Mesh...");
          onDebugMessage?.call("🌐 Network Change Detected. Rebinding Mesh...");
@@ -334,14 +337,18 @@ class DemoEmergencyService extends ChangeNotifier {
 
   // SCENARIO E: The Relay (Store & Forward)
   List<Map<String, dynamic>> relayQueue = [];
+  bool isAlarmMuted = false;
 
   void triggerIncomingAlert(String victimName, String distance, {double? lat, double? lng}) {
     print("DemoEmergencyService: RECEIVED SOS from $victimName!");
     
     // HEAVY ALARM LOOP (Infinite until stopped)
-    // Pattern: Wait 500ms, Vibrate 2000ms... Repeat forever (index 0)
-    Vibration.vibrate(pattern: [500, 2000, 500, 2000], repeat: 0);
-
+    // Only start if not already muted
+    if (!isAlarmMuted) {
+       Vibration.vibrate(pattern: [500, 2000, 500, 2000], repeat: 0);
+    }
+    
+    // ... rest of logic
     // Store for Relay (Scenario E)
     final packet = {
       'victim': victimName,
@@ -360,8 +367,9 @@ class DemoEmergencyService extends ChangeNotifier {
   }
   
   void stopAlarm() {
+    isAlarmMuted = true; // Prevents future vibrations for THIS session
     Vibration.cancel();
-    // Don't clear alert, just stop noise
+    print("DemoEmergencyService: Alarm Stopped/Muted.");
   }
   
   // Call this to simulate finding internet (Scenario E completion)
@@ -370,9 +378,18 @@ class DemoEmergencyService extends ChangeNotifier {
     
     onDebugMessage?.call("🌐 Network Restored! Uploading ${relayQueue.length} SOS packets...");
     
+    // Simulate API Call Time
     Future.delayed(const Duration(seconds: 2), () {
+      // Print the ACTUAL data being uploaded (for Demo Proof)
+      for (var packet in relayQueue) {
+         // TODO: Replace with real API endpoint in Production
+         print("☁️ [DEMO SIMULATION] Preparing POST Request...");
+         print("🔗 Endpoint: /api/v1/sos_relay (Mocked)");
+         print("📦 Payload: ${jsonEncode(packet)}");
+      }
+      
       relayQueue.clear();
-      onDebugMessage?.call("✅ All SOS Data Uploaded to HQ!");
+      onDebugMessage?.call("✅ All SOS Data Uploaded to HQ (Mocked Debug)!");
       notifyListeners();
     });
   }
