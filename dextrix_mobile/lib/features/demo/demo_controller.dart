@@ -3,6 +3,7 @@ import 'demo_module.dart';
 import '../emergency/emergency_module.dart';
 import '../mesh/mesh_service.dart';
 import '../mesh/mesh_provider.dart';
+import '../mesh/simulated_mesh_provider.dart';
 
 class DemoController implements DemoModule {
   final EmergencyModule _emergencyModule;
