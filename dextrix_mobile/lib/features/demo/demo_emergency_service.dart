@@ -43,7 +43,7 @@ import 'package:vibration/vibration.dart';
         }
     });
   }
-import '../mesh/wifi_lan_service.dart';
+import '../mesh/p2p_mesh_service.dart';
 import 'package:geolocator/geolocator.dart';
 
 class DemoEmergencyService extends ChangeNotifier {
@@ -62,8 +62,8 @@ class DemoEmergencyService extends ChangeNotifier {
   // PRD: Incoming Alert Handling
   Map<String, dynamic>? currentIncomingAlert;
 
-  // UDP Service
-  final WifiLanService _lanService = WifiLanService.instance;
+  // P2P Service (True Mesh)
+  final P2pMeshService _p2pService = P2pMeshService.instance;
   final String _myDeviceId = "DEV-${DateTime.now().millisecondsSinceEpoch}";
   
   // Debug Logs for UI
@@ -81,8 +81,13 @@ class DemoEmergencyService extends ChangeNotifier {
 
   DemoEmergencyService._() {
     _initSensor();
-    // Listen for UDP packets
-    _lanService.onDataReceived = (data) {
+    
+    // Initialize P2P
+    _p2pService.init();
+    _p2pService.onDebugLog = (msg) => logPacket(msg);
+
+    // Listen for P2P packets
+    _p2pService.onDataReceived = (data) {
       final String? type = data['type'];
       final String? sender = data['sender_id'];
       
@@ -152,13 +157,13 @@ class DemoEmergencyService extends ChangeNotifier {
   List<String> nearbyRiders = [];
 
   void startMesh() {
-    print("DemoEmergencyService: Mesh Started. Scanning via UDP...");
+    print("DemoEmergencyService: Mesh Started. Scanning via P2P...");
     meshActive = true;
     scanning = true;
     nearbyRiders.clear(); 
     
-    // Start UDP Listener
-    _lanService.startListening();
+    // Start P2P
+    _p2pService.startMesh();
     
     notifyListeners();
   }
@@ -167,7 +172,7 @@ class DemoEmergencyService extends ChangeNotifier {
     meshActive = false;
     scanning = false;
     nearbyRiders.clear();
-    _lanService.stopListening();
+    _p2pService.stopMesh();
     notifyListeners();
   }
 
@@ -196,10 +201,10 @@ class DemoEmergencyService extends ChangeNotifier {
 
   // 2. Countdown Finished -> Broadcast SOS
   void broadcastSOS() {
-    print("DemoEmergencyService: Broadcasting SOS Packet to UDP Mesh...");
+    print("DemoEmergencyService: Broadcasting SOS Packet to P2P Mesh...");
     isBroadcasting = true;
     
-    // Send Real UDP Packet
+    // Send Real P2P Packet
     final packet = {
       'type': 'SOS',
       'sender_id': _myDeviceId,
@@ -209,7 +214,7 @@ class DemoEmergencyService extends ChangeNotifier {
       'lng': lastKnownLocation?['lng'] ?? 0.0
     };
     
-    _lanService.broadcastMessage(packet);
+    _p2pService.broadcastMessage(packet);
     logPacket("TX: SOS SENT -> ${packet['victim_name']}");
     
     notifyListeners();

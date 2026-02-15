@@ -29,8 +29,8 @@ dependencies:
   path: ^1.9.0
   shared_preferences: ^2.2.0
 
-  # Connectivity (Placeholders for now, will implement logic later)
-  # flutter_nearby_connections: ^1.2.5  <- Example, but we'll wrap it
+  # Connectivity (True P2P)
+  flutter_nearby_connections: ^1.2.6 # Stable version for P2P Cluster
   
 dev_dependencies:
   flutter_test:
