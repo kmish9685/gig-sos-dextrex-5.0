@@ -11,27 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart'; // Added for Pocket Mode
 
 class DemoEmergencyService extends ChangeNotifier {
-  static final DemoEmergencyService instance = DemoEmergencyService._();
-  
-  final SensorService _sensorService = SensorService();
-  
-  // PRD: User Identity (Persisted)
-// ... (some context lines might change, I'll use standard replace)
-// Actually I'll target line 1-12 to add import and keep class start.
 
-// I'll target line 1-13.
-// Wait, I can target line 1 and just insert.
-// But I need to add `_initConnectivity` call in constructor.
-// Constructor is around line 76.
-// I'll edit constructor + imports? No, separate edits safer.
-
-// Edit 1: Import.
-// Edit 2: Constructor + Method.
-
-// I'll target line 1 for import.
-// I'll target line 76 for constructor.
-
-// I will do Import first.
   static final DemoEmergencyService instance = DemoEmergencyService._();
   
   final SensorService _sensorService = SensorService();
@@ -138,6 +118,7 @@ class DemoEmergencyService extends ChangeNotifier {
         double vicLat = (data['lat'] as num?)?.toDouble() ?? 0.0;
         double vicLng = (data['lng'] as num?)?.toDouble() ?? 0.0;
         
+        String distStr = "Unknown Distance";
         if (myLat != 0.0 && vicLat != 0.0) {
             double distMeters = Geolocator.distanceBetween(myLat, myLng, vicLat, vicLng);
             
