@@ -10,7 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  provider: ^6  .0.0
+  provider: ^6.0.0
   
   # Sensors & Hardware
   sensors_plus: ^6.0.0
