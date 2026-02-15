@@ -25,22 +25,17 @@ class P2pMeshService {
   }
 
   Future<void> _checkPermissions() async {
-    // Ask for all required permissions
-    // Note: nearby_connections handles some, but explicit check matches Hackathon needs
-    await _nearby.askLocationPermission();
-    await _nearby.askBluetoothPermission();
-    // await _nearby.askExternalStoragePermission(); // If needed
+    // Note: In v4.3.0, we rely on OS dialogs or external permission handler.
+    // Assuming permissions are granted for this Hackathon Demo.
   }
 
   // 1. Start Mesh (Advertising + Discovery)
   Future<void> startMesh() async {
     if (isMeshActive) return;
     
-    // Check permissions first - In 4.3.0 we trust ask* methods above or OS prompt
-    // bool granted = await _nearby.checkLocationPermission(); // Deprecated/Removed in some versions?
-    await _checkPermissions();
+    // Permissions are assumed or handled by UI before this call
+    // If explicit check is needed, use permission_handler package
     
-    // ... rest of startMesh logic
     isMeshActive = true;
     onDebugLog?.call("🌐 Starting Nearby Mesh (Strategy: P2P_CLUSTER)...");
 
