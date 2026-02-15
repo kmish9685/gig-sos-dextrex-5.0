@@ -1,3 +1,4 @@
+import 'package:connectivity_plus/connectivity_plus.dart'; // Added for Auto-Reconnect
 import 'dart:async'; // Added for Timer
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
@@ -10,6 +11,27 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart'; // Added for Pocket Mode
 
 class DemoEmergencyService extends ChangeNotifier {
+  static final DemoEmergencyService instance = DemoEmergencyService._();
+  
+  final SensorService _sensorService = SensorService();
+  
+  // PRD: User Identity (Persisted)
+// ... (some context lines might change, I'll use standard replace)
+// Actually I'll target line 1-12 to add import and keep class start.
+
+// I'll target line 1-13.
+// Wait, I can target line 1 and just insert.
+// But I need to add `_initConnectivity` call in constructor.
+// Constructor is around line 76.
+// I'll edit constructor + imports? No, separate edits safer.
+
+// Edit 1: Import.
+// Edit 2: Constructor + Method.
+
+// I'll target line 1 for import.
+// I'll target line 76 for constructor.
+
+// I will do Import first.
   static final DemoEmergencyService instance = DemoEmergencyService._();
   
   final SensorService _sensorService = SensorService();
@@ -76,6 +98,7 @@ class DemoEmergencyService extends ChangeNotifier {
   DemoEmergencyService._() {
     _loadIdentity();
     _initSensor();
+    _initConnectivity(); // Added for Auto-Reconnect
     
     // Initialize P2P
     _p2pService.init();
@@ -115,12 +138,19 @@ class DemoEmergencyService extends ChangeNotifier {
         double vicLat = (data['lat'] as num?)?.toDouble() ?? 0.0;
         double vicLng = (data['lng'] as num?)?.toDouble() ?? 0.0;
         
-        String distStr = "Unknown Distance";
         if (myLat != 0.0 && vicLat != 0.0) {
             double distMeters = Geolocator.distanceBetween(myLat, myLng, vicLat, vicLng);
-            distStr = "${distMeters.toStringAsFixed(0)}m away";
-            // BEARING
-            // double bearing = Geolocator.bearingBetween(myLat, myLng, vicLat, vicLng);
+            
+            // SANITY CHECK: P2P Range is max ~200m. 
+            // If GPS says 2km, GPS is wrong (Indoors).
+            if (distMeters > 500) {
+              distStr = "Nearby (< 100m)"; // Trust the Mesh, not the GPS drift
+            } else {
+              distStr = "${distMeters.toStringAsFixed(0)}m away";
+            }
+        } else {
+            // No GPS, but we have P2P packet -> We are close.
+            distStr = "Nearby (Visual Range)";
         }
         
         triggerIncomingAlert(data['victim_name'] ?? 'Unknown', distStr, lat: vicLat, lng: vicLng);
@@ -141,6 +171,27 @@ class DemoEmergencyService extends ChangeNotifier {
   // Speed Warning State
   bool speedWarningActive = false;
   DateTime? _lastWarningTime;
+
+  // Auto-Restart Mesh on Network Change (Fix for Disconnect Issue)
+  void _initConnectivity() {
+    print("DemoEmergencyService: Listening for Network Changes...");
+    Connectivity().onConnectivityChanged.listen((result) {
+      if (result != ConnectivityResult.none) {
+         // Network is back (WiFi or Hotspot)
+         print("DemoEmergencyService: Network Restored. Restarting Mesh...");
+         onDebugMessage?.call("🌐 Network Change Detected. Rebinding Mesh...");
+         
+         // Give Android 2-3 seconds to assign IP address before binding
+         Future.delayed(const Duration(seconds: 3), () {
+           if (meshActive) {
+             print("Restarting Mesh Service...");
+             stopMesh();
+             Future.delayed(const Duration(milliseconds: 500), () => startMesh());
+           }
+         });
+      }
+    }); 
+  }
 
   void _initSensor() {
     print("DemoEmergencyService: Initializing Sensors...");
