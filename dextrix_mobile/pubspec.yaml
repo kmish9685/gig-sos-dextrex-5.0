@@ -30,7 +30,7 @@ dependencies:
   shared_preferences: ^2.2.0
 
   # Connectivity (True P2P)
-  flutter_nearby_connections: ^1.2.6 # Stable version for P2P Cluster
+  flutter_nearby_connections: ^1.2.5 # Downgrade to valid version
   
 dev_dependencies:
   flutter_test:
