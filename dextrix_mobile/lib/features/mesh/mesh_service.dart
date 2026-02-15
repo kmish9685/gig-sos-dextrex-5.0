@@ -2,11 +2,13 @@ import 'dart:async';
 import 'mesh_module.dart';
 import 'mesh_provider.dart';
 
+import 'nearby_mesh_provider.dart';
+
 class MeshService implements MeshModule {
   final MeshProvider _provider;
 
   MeshService({MeshProvider? provider}) 
-      : _provider = provider ?? MockMeshProvider();
+      : _provider = provider ?? NearbyMeshProvider();
 
   @override
   Stream<List<String>> get peersStream => _provider.peersStream;

@@ -51,16 +51,24 @@ class DemoController implements DemoModule {
     }
   }
 
+  // Method to manually start discovery for demo
+  Future<void> startMesh() async {
+    print("[DemoController] Starting Mesh manually...");
+    await _meshService.startDiscovery();
+  }
+  
+  Future<void> stopMesh() async {
+    await _meshService.stopDiscovery();
+  }
+
   void simulateIncomingSOS() {
-    if (_meshService.provider is MockMeshProvider) {
-      (_meshService.provider as MockMeshProvider).simulateIncomingMessage({
-        'alert_id': 'demo-alert-123',
-        'device_id': 'demo-rider-B',
-        'timestamp': DateTime.now().toIso8601String(),
-        'alert_type': 'manual',
-        'latitude': 28.4595,
-        'longitude': 77.0266,
-      });
-    }
+    // Only works if using Mock or we force injection
+    // For Nearby, we can't easily inject without a second device,
+    // so we rely on the MockProvider logic OR allow loopback if we implemented it.
+    // For now, let's just trigger the EmergencyState directly to Simulate "Received"
+    // This is a "God Mode" cheat.
+    
+    _emergencyModule.acknowledgeAlert("demo-remote-alert"); // Trigger UI reaction
+    print("[DemoController] Simulated Incoming Alert Triggered (UI Only)");
   }
 }

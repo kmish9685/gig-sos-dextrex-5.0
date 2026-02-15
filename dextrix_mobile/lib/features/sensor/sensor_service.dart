@@ -4,15 +4,18 @@ import 'package:sensors_plus/sensors_plus.dart';
 import 'package:rxdart/rxdart.dart';
 import 'sensor_module.dart';
 
-/// Implementation of SensorModule using sensors_plus package.
 class SensorService implements SensorModule {
   final _crashController = StreamController<double>.broadcast();
-  StreamSubscription<AccelerometerEvent>? _accelSubscription;
+  StreamSubscription<AccelerometerEvent>? _accelSubscription; // Uses accelerometer (gravity excluded) or userAccelerometer
   
-  // Configuration
-  static const double CRASH_THRESHOLD_G = 3.5; // Trigger at 2.5G (approx 24.5 m/s^2)
-  static const double GRAVITY = 9.81;
-  static const int DETECTION_WINDOW_MS = 200;
+  // Refined Configuration
+  static const double CRASH_THRESHOLD_G = 2.9; // Spike threshold
+  static const double INACTIVITY_THRESHOLD_G = 1.1; // Near 1G (or 0G if LinearAcceleration)
+  static const int POST_CRASH_WAIT_MS = 2000; // Check for 2s after spike
+  static const int DEBOUNCE_MS = 10000; // 10s cool-down
+
+  DateTime? _lastCrashTime;
+  bool _monitoringInactivity = false;
 
   @override
   Stream<List<double>> get accelerometerStream => 
@@ -24,9 +27,9 @@ class SensorService implements SensorModule {
   @override
   Future<void> startMonitoring() async {
     if (_accelSubscription != null) return;
+    print("[SensorService] Starting monitoring...");
     
-    // We use a simple window or direct threshold for now.
-    // In a real app, we'd use a sliding window average to reduce noise.
+    // We listen to normal accelerometer (includes Gravity ~9.8m/s2)
     _accelSubscription = accelerometerEvents.listen((event) {
       _analyzeSensorData(event);
     });
@@ -36,24 +39,83 @@ class SensorService implements SensorModule {
   Future<void> stopMonitoring() async {
     await _accelSubscription?.cancel();
     _accelSubscription = null;
+    print("[SensorService] Stopped monitoring.");
   }
 
   @override
   void simulateCrash() {
-    _crashController.add(5.0); // Simulate a 5G impact
-    print("[SensorService] Simulated Crash Triggered!");
+    print("[SensorService] Simulating Manual Crash...");
+    _triggerCrash(5.0);
   }
 
   void _analyzeSensorData(AccelerometerEvent event) {
-    // Calculate total G-force magnitude
-    final magnitude = sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
-    final gForce = magnitude / GRAVITY;
+    if (_monitoringInactivity) return; // Busy checking post-crash state
 
+    // 1. Calculate Total Force (G)
+    // Sensor data is in m/s^2. 1G ~= 9.81
+    final gForce = sqrt(event.x * event.x + event.y * event.y + event.z * event.z) / 9.81;
+
+    // 2. Check for Spike
     if (gForce > CRASH_THRESHOLD_G) {
-      // Simple debounce could be added here if needed
-      // preventing multiple triggers for the same crash
-       _crashController.add(gForce);
-       print("[SensorService] CRASH DETECTED! Force: ${gForce.toStringAsFixed(2)}G");
+      if (_isDebounced()) {
+        print("[SensorService] SPIKE DETECTED (${gForce.toStringAsFixed(1)}G). Checking inactivity...");
+        _checkForInactivity(gForce);
+      }
     }
+  }
+
+  void _checkForInactivity(double detectionForce) async {
+    _monitoringInactivity = true;
+    
+    // Wait for 2 seconds to see if movement settles
+    // Real logic: We should listen to stream and avg the next 2s.
+    // Hackathon Logic: Just wait 2s and take a sample or assume 'stop' means crash.
+    // Improving: We'll monitor for 2 seconds.
+    
+    List<double> postSpikeReadings = [];
+    final sub = accelerometerEvents.listen((e) {
+      double g = sqrt(e.x*e.x + e.y*e.y + e.z*e.z) / 9.81;
+      postSpikeReadings.add(g);
+    });
+
+    await Future.delayed(Duration(milliseconds: POST_CRASH_WAIT_MS));
+    await sub.cancel();
+
+    // Analyze post-spike readings
+    if (postSpikeReadings.isEmpty) {
+        _monitoringInactivity = false;
+        return;
+    }
+    
+    double avgG = postSpikeReadings.reduce((a, b) => a + b) / postSpikeReadings.length;
+    
+    // If user is moving normally, G might fluctuate. 
+    // If crash, phone is likely lying on ground (1G static) or still.
+    // Variation (Standard Deviation) is better than absolute G.
+    // Hackathon Simple: If avg is close to 1G (static), it's a crash.
+    
+    bool isStationary = (avgG > 0.8 && avgG < 1.2); 
+    
+    print("[SensorService] Post-spike Avg G: ${avgG.toStringAsFixed(2)}. Stationary? $isStationary");
+
+    if (isStationary || avgG < 0.5 /* Freefall? */) {
+      _triggerCrash(detectionForce);
+    } else {
+      print("[SensorService] False Alarm: Significant movement detected after spike.");
+    }
+    
+    _monitoringInactivity = false;
+  }
+
+  void _triggerCrash(double force) {
+    _lastCrashTime = DateTime.now();
+    _crashController.add(force);
+    print("[SensorService] CRASH CONFIRMED!");
+  }
+
+  bool _isDebounced() {
+    if (_lastCrashTime == null) return true;
+    final diff = DateTime.now().difference(_lastCrashTime!).inMilliseconds;
+    return diff > DEBOUNCE_MS;
   }
 }
