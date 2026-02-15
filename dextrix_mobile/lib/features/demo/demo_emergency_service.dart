@@ -1,50 +1,10 @@
+import 'dart:async'; // Added for Timer
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../../features/sensor/sensor_service.dart';
 import 'package:vibration/vibration.dart';
-
-// ... (existing imports)
-
-// ... inside class ...
-
-    // Speed Monitor (Prediction)
-    Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 10)
-    ).listen((position) {
-      // Update Last Known Location (in memory for now, would be SharedPrefs)
-      lastKnownLocation = {'lat': position.latitude, 'lng': position.longitude};
-      
-      final speedKmph = position.speed * 3.6;
-      if (speedKmph > 60) { // Limit
-        if (!speedWarningActive && (_lastWarningTime == null || DateTime.now().difference(_lastWarningTime!).inSeconds > 10)) {
-           print("⚠️ OVERSPEED DETECTED: ${speedKmph.toStringAsFixed(1)} km/h");
-           speedWarningActive = true;
-           _lastWarningTime = DateTime.now();
-           
-           // Validated: Feature Request - Vibrate on Overspeed
-           Vibration.vibrate(duration: 1000); 
-           
-           onDebugMessage?.call("⚠️ SLOW DOWN! Speed: ${speedKmph.toStringAsFixed(0)} km/h");
-           notifyListeners();
-           
-           // Auto-reset warning after 5s
-           Future.delayed(const Duration(seconds: 5), () {
-             speedWarningActive = false;
-             notifyListeners();
-           });
-        }
-      }
-    });
-    
-    // Feature: Last Known Location Sync (Every 5 mins)
-    _lastLocationTimer = Timer.periodic(const Duration(minutes: 5), (timer) {
-        if (lastKnownLocation != null) {
-            print("📍 Saved Last Known Location: ${lastKnownLocation.toString()} (Lone Wolf Protection)");
-            // In real app: await SharedPreferences.getInstance().then((p) => p.setString('last_loc', jsonEncode(lastKnownLocation)));
-        }
-    });
-  }
-import '../mesh/p2p_mesh_service.dart';
-import 'package:geolocator/geolocator.dart';
+import '../mesh/p2p_mesh_service.dart'; // Moved to top
+import 'package:geolocator/geolocator.dart'; // Moved to top
 
 class DemoEmergencyService extends ChangeNotifier {
   static final DemoEmergencyService instance = DemoEmergencyService._();
