@@ -166,6 +166,9 @@ class DemoEmergencyService extends ChangeNotifier {
     emergencyActive = true;
     isBroadcasting = false;
     
+    // Safety: Ensure app stays awake during emergency
+    WakelockPlus.enable();
+    
     // Haptic Feedback for Crash
     Vibration.vibrate(pattern: [500, 200, 500, 200]); 
     

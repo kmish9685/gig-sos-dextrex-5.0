@@ -10,7 +10,7 @@ class EmergencyScreen extends StatefulWidget {
 }
 
 class _EmergencyScreenState extends State<EmergencyScreen> {
-  int _countdown = 5;
+  int _countdown = 3;
   Timer? _timer;
 
   @override
