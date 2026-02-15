@@ -63,20 +63,24 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // RIPPLE ANIMATION STACK
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Ring 1
-                      _buildRipple(1.0),
-                      // Ring 2 (Delayed phase)
-                      _buildRipple(0.7),
-                      // Ring 3
-                      _buildRipple(0.3),
-                      
-                      // The Icon
-                      const Icon(Icons.wifi_tethering, size: 100, color: Colors.white),
-                    ],
+                  // RIPPLE ANIMATION STACK (Fixed Size to prevent Button Jumping)
+                  SizedBox(
+                    width: 300,
+                    height: 300,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Ring 1
+                        _buildRipple(1.0),
+                        // Ring 2 (Delayed phase)
+                        _buildRipple(0.7),
+                        // Ring 3
+                        _buildRipple(0.3),
+                        
+                        // The Icon
+                        const Icon(Icons.wifi_tethering, size: 100, color: Colors.white),
+                      ],
+                    ),
                   ),
                   
                   const SizedBox(height: 20),

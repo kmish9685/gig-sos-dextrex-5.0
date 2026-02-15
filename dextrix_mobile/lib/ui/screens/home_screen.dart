@@ -12,12 +12,21 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   bool _isEmergencyShown = false;
+  late AnimationController _pulseController;
 
   @override
   void initState() {
     super.initState();
+    
+    // Pulse Animation for SOS Button
+    _pulseController = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 800), // Fast pulse
+        lowerBound: 0.95,
+        upperBound: 1.05,
+    )..repeat(reverse: true);
     
     // AUTO-START MESH (Safety First)
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -42,6 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    _pulseController.dispose();
     DemoEmergencyService.instance.removeListener(_onServiceUpdate);
     DemoEmergencyService.instance.onDebugMessage = null;
     super.dispose();
@@ -205,18 +215,23 @@ class _HomeScreenState extends State<HomeScreen> {
                         
                         const Spacer(),
 
-                        // Manual SOS Button
+                        // Manual SOS Button (Pulsing)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 40.0),
-                          child: ElevatedButton.icon(
-                            onPressed: DemoEmergencyService.instance.simulateCrash,
-                            icon: const Icon(Icons.warning_amber_rounded),
-                            label: const Text("TRIGGER SOS"),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-                              textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          child: ScaleTransition(
+                            scale: _pulseController,
+                            child: ElevatedButton.icon(
+                              onPressed: DemoEmergencyService.instance.simulateCrash,
+                              icon: const Icon(Icons.warning_amber_rounded),
+                              label: const Text("TRIGGER SOS"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                                textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                elevation: 10, // Add shadow for pop
+                                shadowColor: Colors.redAccent,
+                              ),
                             ),
                           ),
                         ),
