@@ -36,7 +36,23 @@ class WifiLanService {
     }
   }
 
+  Timer? _broadcastTimer;
+
+  // ... (existing code)
+
+  void startBroadcastingPresence(Map<String, dynamic> packet) {
+    _broadcastTimer?.cancel();
+    _broadcastTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      // Add dynamic timestamp to avoid deduplication if needed
+      final p = Map<String, dynamic>.from(packet);
+      // p['ts'] = DateTime.now().millisecondsSinceEpoch; 
+      broadcastMessage(p);
+    });
+    print("[WifiLanService] Started Presence Broadcast (Every 3s)");
+  }
+
   void stopListening() {
+    _broadcastTimer?.cancel();
     _socket?.close();
     _isListening = false;
     _socket = null;

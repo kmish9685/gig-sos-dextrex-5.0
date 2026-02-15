@@ -30,6 +30,14 @@ class DemoEmergencyService extends ChangeNotifier {
       if (type == 'SOS') {
         print("DemoEmergencyService: REAL UDP SOS RECEIVED!");
         triggerIncomingAlert(data['victim_name'] ?? 'Unknown', 'Nearby (WiFi)');
+      } else if (type == 'HELLO') {
+        final String name = data['sender_name'] ?? 'Unknown Rider';
+        if (!nearbyRiders.contains(name)) {
+          print("DemoEmergencyService: Discovered Peer via UDP - $name");
+          nearbyRiders.add(name);
+          scanning = false; // Found someone
+          notifyListeners();
+        }
       }
     };
   }
