@@ -131,7 +131,7 @@ class DemoEmergencyService extends ChangeNotifier {
           print(msg); 
           onDebugMessage?.call(msg);
           nearbyRiders.add(name);
-          Scanning = false; // Found someone
+          scanning = false; // Found someone
           notifyListeners();
         }
       }
