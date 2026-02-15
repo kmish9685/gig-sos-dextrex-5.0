@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart'; // Added
 import '../../features/demo/demo_emergency_service.dart';
 
 class IncomingAlertScreen extends StatelessWidget {
@@ -75,14 +76,40 @@ class IncomingAlertScreen extends StatelessWidget {
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.red,
                       padding: const EdgeInsets.symmetric(vertical: 20),
                     ),
                     onPressed: () {
-                      // Mock Navigation
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Google Maps Navigation Started..."))
-                      );
+                      DemoEmergencyService.instance.stopAlarm();
+                    }, 
+                    icon: const Icon(Icons.volume_off),
+                    label: const Text("STOP ALARM (CHECK)", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                    ),
+                    onPressed: () async {
+                      // Launch Google Maps Navigation
+                      final lat = alert['lat'];
+                      final lng = alert['lng'];
+                      if (lat != null && lng != null) {
+                        final uri = Uri.parse("google.navigation:q=$lat,$lng");
+                        if (await canLaunchUrl(uri)) {
+                           await launchUrl(uri);
+                        } else {
+                           // Fallback to web map
+                           final webUri = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lng");
+                           await launchUrl(webUri, mode: LaunchMode.externalApplication);
+                        }
+                      }
                     }, 
                     icon: const Icon(Icons.navigation, color: Colors.white),
                     label: const Text("NAVIGATE TO VICTIM", style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
@@ -91,6 +118,7 @@ class IncomingAlertScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 TextButton(
                   onPressed: () {
+                    DemoEmergencyService.instance.stopAlarm(); // Ensure stopped
                     DemoEmergencyService.instance.clearIncomingAlert();
                     Navigator.pop(context);
                   },

@@ -82,7 +82,7 @@ class DemoEmergencyService extends ChangeNotifier {
     _p2pService.onDebugLog = (msg) => logPacket(msg);
 
     // Listen for P2P packets
-    _p2pService.onDataReceived = (data) {
+    _p2pService.onDataReceived = (data) async {
       final String? type = data['type'];
       final String? sender = data['sender_id'];
       
@@ -98,6 +98,20 @@ class DemoEmergencyService extends ChangeNotifier {
         // Calculate Distance
         double myLat = lastKnownLocation?['lat'] ?? 0.0;
         double myLng = lastKnownLocation?['lng'] ?? 0.0;
+        
+        // Try to get fresh location if missing
+        if (myLat == 0.0) {
+           try {
+             final pos = await Geolocator.getCurrentPosition();
+             myLat = pos.latitude;
+             myLng = pos.longitude;
+             // Update cache
+             lastKnownLocation = {'lat': myLat, 'lng': myLng};
+           } catch (e) {
+             print("Loc Error: $e");
+           }
+        }
+
         double vicLat = (data['lat'] as num?)?.toDouble() ?? 0.0;
         double vicLng = (data['lng'] as num?)?.toDouble() ?? 0.0;
         
@@ -105,6 +119,8 @@ class DemoEmergencyService extends ChangeNotifier {
         if (myLat != 0.0 && vicLat != 0.0) {
             double distMeters = Geolocator.distanceBetween(myLat, myLng, vicLat, vicLng);
             distStr = "${distMeters.toStringAsFixed(0)}m away";
+            // BEARING
+            // double bearing = Geolocator.bearingBetween(myLat, myLng, vicLat, vicLng);
         }
         
         triggerIncomingAlert(data['victim_name'] ?? 'Unknown', distStr, lat: vicLat, lng: vicLng);
@@ -115,7 +131,7 @@ class DemoEmergencyService extends ChangeNotifier {
           print(msg); 
           onDebugMessage?.call(msg);
           nearbyRiders.add(name);
-          scanning = false; // Found someone
+          Scanning = false; // Found someone
           notifyListeners();
         }
       }
@@ -134,12 +150,14 @@ class DemoEmergencyService extends ChangeNotifier {
       simulateCrash(); // Trigger Pre-Alert (Countdown)
     });
 
-    // Speed Monitor (Prediction)
+    // Speed Monitor (Prediction & Auto-Cancel)
     // 60 km/h = ~16.6 m/s
     Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 10)
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 5)
     ).listen((position) {
       final speedKmph = position.speed * 3.6;
+      
+      // SCENARIO C: The Prediction
       if (speedKmph > 60) {
         if (!speedWarningActive && (_lastWarningTime == null || DateTime.now().difference(_lastWarningTime!).inSeconds > 10)) {
            print("⚠️ OVERSPEED DETECTED: ${speedKmph.toStringAsFixed(1)} km/h");
@@ -148,15 +166,31 @@ class DemoEmergencyService extends ChangeNotifier {
            onDebugMessage?.call("⚠️ SLOW DOWN! Speed: ${speedKmph.toStringAsFixed(0)} km/h");
            notifyListeners();
            
-           // Auto-reset warning after 5s
            Future.delayed(const Duration(seconds: 5), () {
              speedWarningActive = false;
              notifyListeners();
            });
         }
       }
+
+      // SCENARIO D: The False Alarm (Auto-Cancel)
+      // Logic: If Crash detected (Emergency Active) BUT user is moving fast (> 15km/h)
+      // It means they didn't crash, they are riding.
+      if (emergencyActive && speedKmph > 15) {
+         _movingCount++;
+         if (_movingCount >= 3) {
+            print("🚗 Movement Detected ($speedKmph km/h). False Alarm! Auto-Cancelling.");
+            cancelEmergency();
+            onDebugMessage?.call("✅ False Alarm Resolved (You are moving)");
+            _movingCount = 0;
+         }
+      } else {
+         _movingCount = 0;
+      }
     });
   }
+  
+  int _movingCount = 0; // For Auto-Cancel logic
 
   bool meshActive = false;
   bool emergencyActive = false; // True = WE are crashing
@@ -254,21 +288,49 @@ class DemoEmergencyService extends ChangeNotifier {
 
   // --- INCOMING ALERT FLOW (RESPONDER) ---
 
+  // SCENARIO E: The Relay (Store & Forward)
+  List<Map<String, dynamic>> relayQueue = [];
+
   void triggerIncomingAlert(String victimName, String distance, {double? lat, double? lng}) {
     print("DemoEmergencyService: RECEIVED SOS from $victimName!");
     
-    // HEAVY ALARM (Even if silent mode, vibration usually works)
-    // Pattern: Wait 0ms, Vibrate 1000ms, Wait 500ms, Vibrate 1000ms...
-    Vibration.vibrate(pattern: [0, 1000, 500, 1000, 500, 1000, 500, 1000]);
+    // HEAVY ALARM LOOP (Infinite until stopped)
+    // Pattern: Wait 500ms, Vibrate 2000ms... Repeat forever (index 0)
+    Vibration.vibrate(pattern: [500, 2000, 500, 2000], repeat: 0);
 
-    currentIncomingAlert = {
+    // Store for Relay (Scenario E)
+    final packet = {
       'victim': victimName,
       'distance': distance,
       'timestamp': DateTime.now().toIso8601String(),
       'lat': lat ?? 28.4595,
-      'lng': lng ?? 77.0266
+      'lng': lng ?? 77.0266,
+      'status': 'PENDING_UPLOAD' // Waiting for Internet
     };
+    
+    currentIncomingAlert = packet;
+    relayQueue.add(packet); 
+    
+    onDebugMessage?.call("📡 SOS Stored in Relay Queue (Waiting for Internet)");
     notifyListeners();
+  }
+  
+  void stopAlarm() {
+    Vibration.cancel();
+    // Don't clear alert, just stop noise
+  }
+  
+  // Call this to simulate finding internet (Scenario E completion)
+  void simulateNetworkRestoration() {
+    if (relayQueue.isEmpty) return;
+    
+    onDebugMessage?.call("🌐 Network Restored! Uploading ${relayQueue.length} SOS packets...");
+    
+    Future.delayed(const Duration(seconds: 2), () {
+      relayQueue.clear();
+      onDebugMessage?.call("✅ All SOS Data Uploaded to HQ!");
+      notifyListeners();
+    });
   }
 
   void clearIncomingAlert() {

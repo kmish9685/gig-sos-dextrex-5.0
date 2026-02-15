@@ -56,14 +56,28 @@ class SettingsScreen extends StatelessWidget {
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.delete_forever, color: Colors.red),
+            leading: const Icon(Icons.delete_forever, color: Colors.blueGrey),
             title: const Text("Clear Logs"),
             onTap: () {
                service.packetLog.clear();
-               // service.notifyListeners(); // Method not exposed, but logPacket calls it
                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Logs Cleared")));
             },
           ),
+          const Divider(),
+          // SCENARIO E TEST BUTTON
+          if (service.relayQueue.isNotEmpty)
+             Container(
+               color: Colors.orange.withOpacity(0.2),
+               child: ListTile(
+                 leading: const Icon(Icons.cloud_upload, color: Colors.orange),
+                 title: Text("Upload ${service.relayQueue.length} Stored SOS"),
+                 subtitle: const Text("Simulate Network Restoration"),
+                 onTap: () {
+                    service.simulateNetworkRestoration();
+                    Navigator.pop(context);
+                 },
+               ),
+             ),
         ],
       ),
     );
