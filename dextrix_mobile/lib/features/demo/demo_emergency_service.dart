@@ -1,8 +1,23 @@
 import 'package:flutter/foundation.dart';
+import '../../features/sensor/sensor_service.dart';
 
 class DemoEmergencyService extends ChangeNotifier {
   static final DemoEmergencyService instance = DemoEmergencyService._();
-  DemoEmergencyService._();
+  
+  final SensorService _sensorService = SensorService();
+  
+  DemoEmergencyService._() {
+    _initSensor();
+  }
+
+  void _initSensor() {
+    print("DemoEmergencyService: Initializing Sensors...");
+    _sensorService.startMonitoring();
+    _sensorService.crashDetectionStream.listen((force) {
+      print("DemoEmergencyService: REAL SENSOR CRASH DETECTED ($force G)");
+      simulateCrash();
+    });
+  }
 
   bool meshActive = false;
   bool emergencyActive = false;
