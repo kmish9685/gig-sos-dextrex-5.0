@@ -9,7 +9,7 @@ import 'package:geolocator/geolocator.dart'; // Moved to top
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart'; // Added for Pocket Mode
-import 'package:flutter_ringtone_player/flutter_ringtone_player.dart'; // Audio Beacon
+import 'package:flutter_tts/flutter_tts.dart'; // Vocal Beacon
 import 'package:flutter_sms/flutter_sms.dart'; // SMS Fallback
 
 class DemoEmergencyService extends ChangeNotifier {
@@ -298,15 +298,36 @@ class DemoEmergencyService extends ChangeNotifier {
 
   Timer? _sosTimer;
   Timer? _smsTimer; // Added for SMS Grace Period
+  Timer? _ttsTimer; // Added for Vocal Loop
+  final FlutterTts _tts = FlutterTts();
 
   // 2. Countdown Finished -> Broadcast SOS
-  void broadcastSOS() {
+  void broadcastSOS() async {
     print("DemoEmergencyService: Broadcasting SOS Packet to P2P Mesh (Looping)...");
     isBroadcasting = true;
     
-    // AUDIO BEACON: Play Loud Alarm (Even in Background)
-    FlutterRingtonePlayer.playAlarm(looping: true, volume: 1.0, asAlarm: true);
-    
+    // VOCAL BEACON: Scream for Help (Replaces Ringtone)
+    // Config TTS
+    try {
+      await _tts.setLanguage("en-US");
+      await _tts.setSpeechRate(0.5); // Clear and Urgent
+      await _tts.setVolume(1.0);
+      await _tts.setPitch(1.0);
+      
+      _ttsTimer?.cancel();
+      // Speak immediately
+      _tts.speak("Emergency! emergency! Accident Detected! Please Help!");
+      
+      // Loop every 5 seconds
+      _ttsTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+         if (isBroadcasting) {
+            _tts.speak("Emergency! emergency! Please Help!");
+         }
+      });
+    } catch (e) {
+      print("TTS Error: $e");
+    }
+
     // SMS FALLBACK (Grace Period: 20s for Safety)
     // Start local help instantly, but wait before scaring family.
     if (_emergencyContact.isNotEmpty) {
@@ -369,10 +390,11 @@ class DemoEmergencyService extends ChangeNotifier {
     isBroadcasting = false;
     _sosTimer?.cancel(); // Stop the loop
     _smsTimer?.cancel(); // STOP THE SMS! (Safety Logic)
+    _ttsTimer?.cancel(); // Stop Vocal Loop
     
     // Stop Haptics & Audio
     Vibration.cancel();
-    FlutterRingtonePlayer.stop(); // Stop Audio Beacon
+    _tts.stop(); // Silence the Voice
     
     WakelockPlus.disable();
     
