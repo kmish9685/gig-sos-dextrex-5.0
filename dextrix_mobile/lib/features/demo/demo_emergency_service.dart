@@ -10,7 +10,7 @@ import 'package:geolocator/geolocator.dart'; // Moved to top
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart'; // Added for Pocket Mode
 import 'package:flutter_tts/flutter_tts.dart'; // Vocal Beacon
-import 'package:flutter_sms/flutter_sms.dart'; // SMS Fallback
+import 'package:url_launcher/url_launcher.dart'; // SMS Fallback (via App)
 
 class DemoEmergencyService extends ChangeNotifier {
 
@@ -373,14 +373,15 @@ class DemoEmergencyService extends ChangeNotifier {
   
   void _sendSMS() async {
     try {
-      String message = "SOS! $userName has crashed! Location: https://maps.google.com/?q=${lastKnownLocation?['lat']},${lastKnownLocation?['lng']}";
-      List<String> recipients = [_emergencyContact];
-      // This sends it directly if permission is granted, or opens the app
-      await sendSMS(message: message, recipients: recipients, sendDirect: true); 
-      onDebugMessage?.call("📲 SMS Sent to $_emergencyContact");
+      // Use URL Launcher to open SMS app (Safe & Guaranteed)
+      final message = Uri.encodeComponent("SOS! $userName has crashed! Location: https://maps.google.com/?q=${lastKnownLocation?['lat']},${lastKnownLocation?['lng']}");
+      final uri = Uri.parse("sms:$_emergencyContact?body=$message");
+      
+      await launchUrl(uri); 
+      onDebugMessage?.call("📲 SMS App Opened. Please press Send!");
     } catch (e) {
       print("SMS Error: $e");
-      onDebugMessage?.call("⚠️ SMS Failed (Simulating Success for Demo)");
+      onDebugMessage?.call("⚠️ SMS Failed: $e");
     }
   }
   
