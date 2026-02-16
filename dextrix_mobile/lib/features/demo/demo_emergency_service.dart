@@ -1,8 +1,7 @@
 import 'package:connectivity_plus/connectivity_plus.dart'; // Added for Auto-Reconnect
 import 'dart:async'; // Added for Timer
 import 'dart:convert';
-import 'package:flutter/widgets.dart'; // Added for Lifecycle Observer
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart'; // Includes WidgetsBindingObserver & AppLifecycleState
 import '../../features/sensor/sensor_service.dart';
 import 'package:vibration/vibration.dart';
 import '../mesh/p2p_mesh_service.dart'; // Moved to top
