@@ -10,6 +10,8 @@ import 'package:geolocator/geolocator.dart'; // Moved to top
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart'; // Added for Pocket Mode
 import 'package:flutter_tts/flutter_tts.dart'; // Vocal Beacon
+import '../../main.dart'; // For Global Navigator Key
+import '../../ui/screens/incoming_alert_screen.dart'; // For direct push
 
 class DemoEmergencyService extends ChangeNotifier with WidgetsBindingObserver {
 
@@ -97,7 +99,7 @@ class DemoEmergencyService extends ChangeNotifier with WidgetsBindingObserver {
       if (sender == _myDeviceId) return; // Ignore own echoes
 
       if (type == 'SOS') {
-        final msg = "⚠️ UDP SOS from ${data['victim_name']}";
+        final msg = "⚠️ SOS Signal Received from ${data['victim_name']}!";
         print(msg);
         onDebugMessage?.call(msg);
         
@@ -436,6 +438,14 @@ class DemoEmergencyService extends ChangeNotifier with WidgetsBindingObserver {
     relayQueue.add(packet); 
     
     onDebugMessage?.call("📡 SOS Stored in Relay Queue (Waiting for Internet)");
+    
+    // FORCE UI NAVIGATION (Global)
+    if (navigatorKey.currentState != null) {
+       navigatorKey.currentState!.push(
+         MaterialPageRoute(builder: (_) => const IncomingAlertScreen())
+       );
+    }
+    
     notifyListeners();
   }
   

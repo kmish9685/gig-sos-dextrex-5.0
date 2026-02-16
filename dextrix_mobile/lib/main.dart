@@ -6,12 +6,15 @@ void main() {
   runApp(const DextrixApp());
 }
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 class DextrixApp extends StatelessWidget {
   const DextrixApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'Dextrix 5.0',
       theme: ThemeData(
         primarySwatch: Colors.deepOrange,

@@ -77,16 +77,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
 
     // 2. Incoming Alert Logic (Others)
-    if (service.currentIncomingAlert != null) {
-      // Basic check to avoid multi-push would be good, but for MVP:
-      // We rely on the screen itself to dismiss and clear data
-       if (ModalRoute.of(context)?.isCurrent ?? false) {
-          Navigator.push(
-             context, 
-             MaterialPageRoute(builder: (_) => const IncomingAlertScreen())
-          );
-       }
-    }
+    // REMOVED: Now handled globally by DemoEmergencyService using navigatorKey.
+    // This prevents the "Home Screen Only" bug.
   }
 
   @override

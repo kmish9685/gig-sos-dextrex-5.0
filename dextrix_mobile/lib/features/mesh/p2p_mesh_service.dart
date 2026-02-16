@@ -66,7 +66,9 @@ class P2pMeshService {
       // Cluster (Mesh) often fails if Wi-Fi Radio is busy.
       await _nearby.startAdvertising(
         userName,
-        Strategy.P2P_STAR, 
+        // Strategy.P2P_CLUSTER (M-to-N) is better for true mesh.
+        // Star (1-to-N) is good if we have a designated "Captain", but for ad-hoc riders, Cluster is better.
+        Strategy.P2P_CLUSTER, 
         onConnectionInitiated: (id, info) {
           onDebugLog?.call("🤝 Connection Initiated by ${info.endpointName} ($id)");
           _acceptConnection(id);
@@ -98,7 +100,7 @@ class P2pMeshService {
       // B. Start Discovery (Find others)
       await _nearby.startDiscovery(
         userName,
-        Strategy.P2P_STAR,
+        Strategy.P2P_CLUSTER,
         onEndpointFound: (id, name, serviceId) {
           if (connectedEndpoints.contains(id)) {
              onDebugLog?.call("👋 Already connected to $name ($id). Skipping.");
