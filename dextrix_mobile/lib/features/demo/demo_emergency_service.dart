@@ -77,7 +77,11 @@ class DemoEmergencyService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   // Debug Callback for UI Toasts
+  // Debug Callback for UI Toasts
   void Function(String msg)? onDebugMessage;
+
+  // State: Alert Screen Debounce
+  bool _isAlertScreenOpen = false;
 
   DemoEmergencyService._() {
     WidgetsBinding.instance.addObserver(this); // Listen to Lifecycle
@@ -440,10 +444,15 @@ class DemoEmergencyService extends ChangeNotifier with WidgetsBindingObserver {
     onDebugMessage?.call("📡 SOS Stored in Relay Queue (Waiting for Internet)");
     
     // FORCE UI NAVIGATION (Global)
-    if (navigatorKey.currentState != null) {
+    // FORCE UI NAVIGATION (Global)
+    // Debounce: Only push if not already open
+    if (navigatorKey.currentState != null && !_isAlertScreenOpen) {
+       _isAlertScreenOpen = true; // Lock
        navigatorKey.currentState!.push(
          MaterialPageRoute(builder: (_) => const IncomingAlertScreen())
-       );
+       ).then((_) {
+          _isAlertScreenOpen = false; // Unlock when returned
+       });
     }
     
     notifyListeners();
