@@ -95,6 +95,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       appBar: AppBar(
         title: const Text('DEXTRIX 5.0'),
         actions: [
+          // JUDGE/DEMO PANEL (The "Science" Button)
+          IconButton(
+            icon: const Icon(Icons.science, color: Colors.orangeAccent), 
+            tooltip: "Open Judge Panel",
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DemoScreen())),
+          ),
           IconButton(
             icon: const Icon(Icons.radar), 
             tooltip: "Signal Matrix",
