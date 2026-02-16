@@ -11,7 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart'; // Added for Pocket Mode
 import 'package:flutter_tts/flutter_tts.dart'; // Vocal Beacon
 
-class DemoEmergencyService extends ChangeNotifier {
+class DemoEmergencyService extends ChangeNotifier with WidgetsBindingObserver {
 
   static final DemoEmergencyService instance = DemoEmergencyService._();
   
@@ -78,6 +78,7 @@ class DemoEmergencyService extends ChangeNotifier {
   void Function(String msg)? onDebugMessage;
 
   DemoEmergencyService._() {
+    WidgetsBinding.instance.addObserver(this); // Listen to Lifecycle
     _loadIdentity();
     _initSensor();
     _initConnectivity(); // Added for Auto-Reconnect
@@ -149,6 +150,26 @@ class DemoEmergencyService extends ChangeNotifier {
         }
       }
     };
+  }
+  
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    print("DemoEmergencyService: Lifecycle State -> $state");
+    if (state == AppLifecycleState.resumed) {
+       // APP CAME TO FOREGROUND
+       // Fix for "Demo Effect": If we were supposed to be meshing, 
+       // restart it to grab the radio from OS background throttling.
+       if (meshActive) {
+          print("🔄 App Resumed. Refreshing Mesh Connection...");
+          onDebugMessage?.call("⚡ App Resumed. Refreshing Radio...");
+          
+          // Quick toggle to wake up Nearby API
+          stopMesh();
+          Future.delayed(const Duration(milliseconds: 500), () {
+             startMesh();
+          });
+       }
+    }
   }
 
   // Speed Warning State
