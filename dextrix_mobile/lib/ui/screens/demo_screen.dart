@@ -83,6 +83,8 @@ class DemoScreen extends StatelessWidget {
                   
               const Divider(thickness: 2),
 
+              const Divider(thickness: 2),
+
               const Text("System State (Read-Only):", style: TextStyle(fontWeight: FontWeight.bold)),
               Container(
                 color: Colors.black12,
@@ -94,6 +96,34 @@ class DemoScreen extends StatelessWidget {
                     Text("My Status: ${service.emergencyActive ? 'CRASHED' : 'SAFE'}"),
                     Text("Broadcasting: ${service.isBroadcasting}"),
                   ],
+                ),
+              ),
+              
+              const SizedBox(height: 20),
+              const Text("LIVE BLACK BOX LOGS (Sensors + Mesh):", style: TextStyle(fontWeight: FontWeight.bold)),
+              Container(
+                height: 250, 
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.greenAccent)
+                ),
+                padding: const EdgeInsets.all(8),
+                child: ListView.builder(
+                  itemCount: service.packetLog.length,
+                  itemBuilder: (context, index) {
+                    final log = service.packetLog[index];
+                    Color color = Colors.greenAccent;
+                    if (log.contains("CRASH") || log.contains("IMPACT")) color = Colors.redAccent;
+                    if (log.contains("TX")) color = Colors.orangeAccent;
+                    if (log.contains("RX")) color = Colors.cyanAccent;
+                    if (log.contains("Tilt")) color = Colors.yellow; // For sensor params
+                    
+                    return Text(
+                      log, 
+                      style: TextStyle(color: color, fontFamily: 'monospace', fontSize: 12)
+                    );
+                  },
                 ),
               ),
             ],
