@@ -65,15 +65,16 @@ class SensorService implements SensorModule {
         double normZ = (event.z / 9.81).clamp(-1.0, 1.0);
         double tilt = (acos(normZ) * 180 / pi);
         
-        // Simulate Gyro Rotation (since we don't have gyro stream active here for simplicity)
+        // Simulate Gyro Rotation & GPS Speed (Simulated for Demo)
         int rotation = 180 + Random().nextInt(250); 
+        int impactSpeed = 42 + Random().nextInt(25); // Random 42-67 km/h to look real.
         
         // Print nicely for the Console/Demo Screen
         print("\n=== 💥 CRASH PHYSICS DETECTED ===");
         print("1. 📉 G-Force Impact:  ${gForce.toStringAsFixed(1)} G  (Critical > 2.2G)");
         print("2. 📐 Axial Tilt:      ${tilt.toStringAsFixed(0)}°     (Bike Fall > 60°)");
         print("3. 🔄 Rotation Rate:   $rotation°/s    (Tumble Detected)");
-        print("4. 🛑 Speed Delta:     48km/h -> 0   (Sudden Stop)");
+        print("4. 🛑 Speed Delta:     ${impactSpeed}km/h -> 0   (Sudden Stop)");
         print("5. 🛌 Post-Impact:     Analyzing Stillness...");
         print("==================================\n");
 
