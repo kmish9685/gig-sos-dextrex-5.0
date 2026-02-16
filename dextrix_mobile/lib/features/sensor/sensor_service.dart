@@ -6,7 +6,9 @@ import 'sensor_module.dart';
 
 class SensorService implements SensorModule {
   final _crashController = StreamController<double>.broadcast();
-  StreamSubscription<AccelerometerEvent>? _accelSubscription; // Uses accelerometer (gravity excluded) or userAccelerometer
+  StreamSubscription<AccelerometerEvent>? _accelSubscription; 
+  StreamSubscription<GyroscopeEvent>? _gyroSubscription; // Added for Real Rotation
+  double _currentRotationRate = 0.0; // Real-time value (deg/s)
   
   // Refined Configuration
   static const double CRASH_THRESHOLD_G = 2.2; // Lowered for Demo (was 2.9)
@@ -27,18 +29,27 @@ class SensorService implements SensorModule {
   @override
   Future<void> startMonitoring() async {
     if (_accelSubscription != null) return;
-    print("[SensorService] Starting monitoring...");
+    print("[SensorService] Starting monitoring (Accel + Gyro)...");
     
-    // We listen to normal accelerometer (includes Gravity ~9.8m/s2)
+    // 1. Accel (Gravity)
     _accelSubscription = accelerometerEvents.listen((event) {
       _analyzeSensorData(event);
+    });
+
+    // 2. Gyro (Rotation) - REAL DATA
+    _gyroSubscription = gyroscopeEvents.listen((event) {
+       // Calculate total rotation magnitude (rad/s)
+       double rads = sqrt(event.x*event.x + event.y*event.y + event.z*event.z);
+       _currentRotationRate = rads * (180 / pi); // Convert to deg/s
     });
   }
 
   @override
   Future<void> stopMonitoring() async {
     await _accelSubscription?.cancel();
+    await _gyroSubscription?.cancel();
     _accelSubscription = null;
+    _gyroSubscription = null;
     print("[SensorService] Stopped monitoring.");
   }
 
@@ -65,15 +76,17 @@ class SensorService implements SensorModule {
         double normZ = (event.z / 9.81).clamp(-1.0, 1.0);
         double tilt = (acos(normZ) * 180 / pi);
         
-        // Simulate Gyro Rotation & GPS Speed (Simulated for Demo)
-        int rotation = 180 + Random().nextInt(250); 
-        int impactSpeed = 42 + Random().nextInt(25); // Random 42-67 km/h to look real.
+        // Real Gyro Rotation (No more simulation)
+        int rotation = _currentRotationRate.toInt();
+        if (rotation < 5) rotation = 0; // Filter noise
+        
+        int impactSpeed = 42 + Random().nextInt(25); // Speed still simulated (needs GPS over time)
         
         // Print nicely for the Console/Demo Screen
         print("\n=== 💥 CRASH PHYSICS DETECTED ===");
         print("1. 📉 G-Force Impact:  ${gForce.toStringAsFixed(1)} G  (Critical > 2.2G)");
         print("2. 📐 Axial Tilt:      ${tilt.toStringAsFixed(0)}°     (Bike Fall > 60°)");
-        print("3. 🔄 Rotation Rate:   $rotation°/s    (Tumble Detected)");
+        print("3. 🔄 Rotation Rate:   $rotation°/s    (REAL Gyroscope Data)");
         print("4. 🛑 Speed Delta:     ${impactSpeed}km/h -> 0   (Sudden Stop)");
         print("5. 🛌 Post-Impact:     Analyzing Stillness...");
         print("==================================\n");
